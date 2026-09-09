@@ -10,6 +10,7 @@
 #include "Sequencer.hpp"
 #include "../audio/AudioManager.hpp"
 #include "../coins/CoinManager.hpp"
+#include "../config/Config.hpp"
 #include "../consent/HardModeConsent.hpp"
 #include "../platform/TrayIcon.hpp"
 #include "../ui/IconBlockOverlay.hpp"
@@ -43,11 +44,13 @@ private:
     void RenderRansomFlash();
 
     void SpawnTaunt();
+    std::uint32_t RollIdleTimerMs();
     std::filesystem::path AssetPath(const std::string& relative) const;
     std::filesystem::path ConfigDir() const;
 
     Sequencer sequencer_;
     AudioManager audio_;
+    Config config_;
     std::unique_ptr<CoinManager> coins_;
     std::unique_ptr<HardModeConsent> consent_;
     std::unique_ptr<TrayIcon> trayIcon_;

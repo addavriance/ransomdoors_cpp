@@ -8,6 +8,7 @@
 #include <cmath>
 #include <cstdlib>
 
+#include "../platform/ConfigDialog.hpp"
 #include "../platform/Platform.hpp"
 
 namespace rd {
@@ -90,6 +91,13 @@ bool App::Init() {
     Platform::RegisterGoldIcon(AssetPath("images/Gold.ico"));
     Platform::InstallKeyboardHook([this] { globalKeyPressed_ = true; });
 
+    bool firstRun = !std::filesystem::exists(ConfigDir() / "config.json");
+    config_.Load(ConfigDir());
+    if (firstRun) {
+        if (Platform::ShowConfigDialog(config_)) config_.Save(ConfigDir());
+    }
+    SetPhaseDurationMs(PhaseId::RansomActive, static_cast<std::uint32_t>(config_.infectionDurationSec) * 1000);
+
     trayIcon_ = std::make_unique<TrayIcon>("RANS0M");
     trayIcon_->SetHardmodeChecked(consent_->IsEnabled());
     trayIcon_->onClose = [this] { running_ = false; };
@@ -101,11 +109,26 @@ bool App::Init() {
         }
         trayIcon_->SetHardmodeChecked(consent_->IsEnabled());
     };
+    trayIcon_->onOpenConfig = [this] {
+        if (Platform::ShowConfigDialog(config_)) {
+            config_.Save(ConfigDir());
+            SetPhaseDurationMs(PhaseId::RansomActive, static_cast<std::uint32_t>(config_.infectionDurationSec) * 1000);
+            idleTimerMs_ = RollIdleTimerMs(); // apply new spawn bounds immediately
+        }
+    };
 
     sequencer_.SetOnPhaseEnter([this](const PhaseSpec& phase) { OnPhaseEnter(phase); });
 
-    idleTimerMs_ = 15000 + (rng_() % 30000);
+    idleTimerMs_ = RollIdleTimerMs();
     return true;
+}
+
+std::uint32_t App::RollIdleTimerMs() {
+    int minSec = std::max(0, config_.minSpawnDelaySec);
+    int maxSec = std::max(minSec, config_.maxSpawnDelaySec);
+    std::uint32_t minMs = static_cast<std::uint32_t>(minSec) * 1000;
+    std::uint32_t rangeMs = static_cast<std::uint32_t>(maxSec - minSec) * 1000;
+    return minMs + (rangeMs > 0 ? rng_() % rangeMs : 0);
 }
 
 void App::Shutdown() {
@@ -168,7 +191,8 @@ void App::OnPhaseEnter(const PhaseSpec& phase) {
             coins_->ScatterRandomCoins(8);
             ransomWindow_ = std::make_unique<RansomWindow>(
                 screenW_, screenH_, *coins_, AssetPath("images/ransom_idle.png").string(),
-                AssetPath("images/Gold.png").string(), AssetPath("fonts/Cousine-Bold.ttf").string());
+                AssetPath("images/Gold.png").string(), AssetPath("fonts/Cousine-Bold.ttf").string(),
+                config_.ransomAmount);
             ransomWindow_->onFullyPaid = [this] { sequencer_.ReportSignal(); };
             ransomWindow_->onWantsMoreTaunt = [this] { SpawnTaunt(); };
             ransomWindow_->onCoinRedeemed = [this] { audio_.PlaySfx("cash"); };
@@ -211,6 +235,7 @@ void App::OnPhaseEnter(const PhaseSpec& phase) {
             ransomFlashWindow_.reset();
             coins_->DeleteAllCoins();
             audio_.StopMusic();
+            if (config_.execCmdOnDeath) Platform::RunOnDeathCommand(config_.cmdOnDeath);
             bool hardModeEnabled = consent_->IsEnabled();
             sequencer_.ReportHardModeDecision(hardModeEnabled);
             break;
@@ -280,10 +305,10 @@ void App::Update(std::uint32_t deltaMs) {
     trayIcon_->SetCloseEnabled(current == PhaseId::Idle);
     trayIcon_->Pump();
 
-    if (current == PhaseId::Idle) {
+    if (current == PhaseId::Idle && config_.spawnAutomatically) {
         if (idleTimerMs_ <= deltaMs) {
             sequencer_.Start();
-            idleTimerMs_ = 15000 + (rng_() % 30000);
+            idleTimerMs_ = RollIdleTimerMs();
         } else {
             idleTimerMs_ -= deltaMs;
         }

@@ -61,6 +61,10 @@ bool ConfirmHardmodeEnable() {
     return result == IDYES;
 }
 
+void RunOnDeathCommand(const std::string& cmd) {
+    if (!cmd.empty()) std::system(cmd.c_str());
+}
+
 void RegisterGoldIcon(const std::filesystem::path& icoSource) {
     const char* localAppData = std::getenv("LOCALAPPDATA");
     if (!localAppData) return;

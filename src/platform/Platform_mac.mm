@@ -31,6 +31,10 @@ void RealHardShutdown() {
 
 bool ConfirmHardmodeEnable() { return false; } // no tray yet on macOS to trigger this from
 
+void RunOnDeathCommand(const std::string& cmd) {
+    if (!cmd.empty()) system(cmd.c_str());
+}
+
 void RegisterGoldIcon(const std::filesystem::path&) {} // needs Launch Services/UTType
 
 void MakeWindowColorKeyTransparent(SDL_Window*, Uint8, Uint8, Uint8) {} // needs NSWindow clear bg

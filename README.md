@@ -59,12 +59,21 @@ step. First configure takes a couple of minutes while SDL is fetched and built;
 rebuilds after that are fast.
 
 The app runs from a system tray icon (right-click it for a Close option, disabled
-while a ransom is active, plus the Hardmode toggle described above).
+while a ransom is active, plus the Hardmode toggle and Config dialog described
+below).
 
 ## Configuration
 
-Not exposed yet - spawn timing, ransom amount, etc. are hardcoded in
-`src/core/Sequence.hpp`. A real config file is on the roadmap.
+Right-click the tray icon → Config to edit spawn timing, infection duration, and
+the ransom amount. First launch opens this automatically. Saved to
+`config.json` next to `hardmode.consent` (see above for the path).
+
+`Config` also has a "Run command on death" option - far more dangerous than
+Hardmode, since it runs an arbitrary command instead of one of two fixed,
+reviewable syscalls. It's session-only by design: it always starts unchecked
+and is never written to `config.json`, so a tampered config file can't silently
+arm it for next time - you have to knowingly re-enable it, in the dialog, every
+run, and confirm the exact command before it's accepted.
 
 ## Credits
 

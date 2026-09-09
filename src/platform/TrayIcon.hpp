@@ -20,6 +20,7 @@ public:
 
     std::function<void()> onClose;
     std::function<void()> onToggleHardmode;
+    std::function<void()> onOpenConfig;
 
 private:
     struct Impl;

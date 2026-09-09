@@ -51,6 +51,16 @@ if(NOT TARGET SDL2::SDL2 OR NOT TARGET SDL2_image::SDL2_image OR NOT TARGET SDL2
     FetchContent_MakeAvailable(SDL2_ttf)
 endif()
 
+# Config.cpp's JSON: single header, negligible build cost (no .cpp to compile),
+# far less risk than hand-rolling a parser for something this well-trodden.
+find_package(nlohmann_json QUIET CONFIG)
+if(NOT TARGET nlohmann_json::nlohmann_json)
+    include(FetchContent)
+    FetchContent_Declare(nlohmann_json GIT_REPOSITORY https://github.com/nlohmann/json.git GIT_TAG v3.11.3 GIT_SHALLOW TRUE)
+    set(JSON_BuildTests OFF CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(nlohmann_json)
+endif()
+
 # WIN32 puts this on the GUI subsystem (no console box popping up over the jumpscare
 # overlay); the keyword is a no-op on non-Windows targets so it's safe unconditionally.
 # rans0m.csproj: <ApplicationIcon>main_ico.ico</ApplicationIcon> - without this the exe
@@ -66,6 +76,7 @@ add_executable(ransomdoors WIN32
     src/core/Sequencer.cpp
     src/audio/AudioManager.cpp
     src/coins/CoinManager.cpp
+    src/config/Config.cpp
     src/consent/HardModeConsent.cpp
     src/ui/Window.cpp
     src/ui/Text.cpp
@@ -77,18 +88,20 @@ add_executable(ransomdoors WIN32
     src/platform/Platform_mac.mm
     src/platform/TrayIcon_win.cpp
     src/platform/TrayIcon_mac.mm
+    src/platform/ConfigDialog_win.cpp
+    src/platform/ConfigDialog_mac.mm
 )
 
 target_include_directories(ransomdoors PRIVATE src)
 
 if(APPLE)
-    set_source_files_properties(src/platform/Platform_mac.mm src/platform/TrayIcon_mac.mm
+    set_source_files_properties(src/platform/Platform_mac.mm src/platform/TrayIcon_mac.mm src/platform/ConfigDialog_mac.mm
         PROPERTIES COMPILE_FLAGS "-x objective-c++")
     target_link_libraries(ransomdoors PRIVATE "-framework Foundation")
-    set_source_files_properties(src/platform/Platform_win.cpp src/platform/TrayIcon_win.cpp
+    set_source_files_properties(src/platform/Platform_win.cpp src/platform/TrayIcon_win.cpp src/platform/ConfigDialog_win.cpp
         PROPERTIES HEADER_FILE_ONLY TRUE)
 else()
-    set_source_files_properties(src/platform/Platform_mac.mm src/platform/TrayIcon_mac.mm
+    set_source_files_properties(src/platform/Platform_mac.mm src/platform/TrayIcon_mac.mm src/platform/ConfigDialog_mac.mm
         PROPERTIES HEADER_FILE_ONLY TRUE)
 endif()
 
@@ -101,6 +114,7 @@ target_link_libraries(ransomdoors PRIVATE
     SDL2_image::SDL2_image
     SDL2_mixer::SDL2_mixer
     SDL2_ttf::SDL2_ttf
+    nlohmann_json::nlohmann_json
 )
 
 add_custom_command(TARGET ransomdoors POST_BUILD

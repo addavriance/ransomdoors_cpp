@@ -36,7 +36,9 @@ struct PhaseSpec {
 // state machine as data
 //
 // RealHardMode only reachable via HardModeConsent - see Sequencer.
-inline constexpr PhaseSpec kSequence[] = {
+// Not constexpr: Config patches RansomActive's durationMs at startup (see
+// SetPhaseDurationMs), so this needs to be a mutable, inline-linked global.
+inline PhaseSpec kSequence[] = {
     { PhaseId::Idle, "Idle", 0, ExitRule::ExternalSignal, PhaseId::Idle, PhaseId::Warning, "", "" },
 
     { PhaseId::Warning, "Warning", 1100, ExitRule::ExternalSignal,
@@ -61,11 +63,15 @@ inline constexpr PhaseSpec kSequence[] = {
       PhaseId::Idle, PhaseId::Idle, "", "attack" },
 };
 
-inline constexpr const PhaseSpec& FindPhase(PhaseId id) {
-    for (const auto& phase : kSequence) {
+inline PhaseSpec& FindPhase(PhaseId id) {
+    for (auto& phase : kSequence) {
         if (phase.id == id) return phase;
     }
     return kSequence[0];
+}
+
+inline void SetPhaseDurationMs(PhaseId id, std::uint32_t durationMs) {
+    FindPhase(id).durationMs = durationMs;
 }
 
 } // namespace rd

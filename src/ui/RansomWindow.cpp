@@ -45,13 +45,14 @@ void DrawTextLeft(TextRenderer& text, SDL_Renderer* renderer, const std::string&
 } // namespace
 
 RansomWindow::RansomWindow(int screenW, int screenH, CoinManager& coins, const std::string& ransomIdlePath,
-                            const std::string& goldPath, const std::string& fontPath)
+                            const std::string& goldPath, const std::string& fontPath, int ransomAmount)
     : window_("RANS0M", kWidth, kHeight, SDL_WINDOW_ALWAYS_ON_TOP | SDL_WINDOW_SKIP_TASKBAR,
               /*startVisible=*/true, /*titleBar=*/true),
       coins_(coins),
       text_(window_.Renderer()),
       screenW_(screenW),
-      screenH_(screenH) {
+      screenH_(screenH),
+      ransomLeft_(ransomAmount) {
     if (!window_.Valid()) return;
     int x = (screenW - kWidth) / 2;
     int y = (screenH - kHeight) / 2;

@@ -11,6 +11,7 @@ namespace {
 constexpr UINT kCallbackMsg = WM_APP + 1;
 constexpr UINT kIdClose = 1;
 constexpr UINT kIdHardmode = 2;
+constexpr UINT kIdConfig = 3;
 constexpr wchar_t kClassName[] = L"RansomdoorsTrayWnd";
 
 std::wstring ToWide(const std::string& s) {
@@ -44,6 +45,7 @@ struct TrayIcon::Impl {
                 AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
                 AppendMenuW(menu, MF_STRING | (impl->hardmodeChecked ? MF_CHECKED : MF_UNCHECKED), kIdHardmode,
                             L"Hardmode");
+                AppendMenuW(menu, MF_STRING, kIdConfig, L"Config...");
 
                 SetForegroundWindow(hwnd); // required or the menu won't dismiss on outside click
                 TrackPopupMenu(menu, TPM_RIGHTBUTTON, pt.x, pt.y, 0, hwnd, nullptr);
@@ -55,6 +57,7 @@ struct TrayIcon::Impl {
             UINT id = LOWORD(wParam);
             if (id == kIdClose && impl->closeEnabled && impl->self->onClose) impl->self->onClose();
             if (id == kIdHardmode && impl->self->onToggleHardmode) impl->self->onToggleHardmode();
+            if (id == kIdConfig && impl->self->onOpenConfig) impl->self->onOpenConfig();
             return 0;
         }
         return DefWindowProcW(hwnd, msg, wParam, lParam);

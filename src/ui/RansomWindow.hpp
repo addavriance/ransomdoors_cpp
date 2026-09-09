@@ -17,7 +17,7 @@ namespace rd {
 class RansomWindow {
 public:
     RansomWindow(int screenW, int screenH, CoinManager& coins, const std::string& ransomIdlePath,
-                 const std::string& goldPath, const std::string& fontPath);
+                 const std::string& goldPath, const std::string& fontPath, int ransomAmount = 500);
 
     Uint32 WindowId() const { return window_.Id(); }
 
@@ -38,7 +38,7 @@ private:
     SDL_Texture* texGold_ = nullptr;
     int screenW_;
     int screenH_;
-    int ransomLeft_ = 500; // -100/coin, paid at <=0
+    int ransomLeft_; // -100/coin, paid at <=0; initialized from ctor's ransomAmount
 };
 
 } // namespace rd

@@ -4,6 +4,7 @@
 
 #include <filesystem>
 #include <functional>
+#include <string>
 #include <vector>
 
 namespace rd {
@@ -18,6 +19,8 @@ void RealHardShutdown();
 
 // native MessageBox warning before HardModeConsent::Enable(); true = user picked Yes
 bool ConfirmHardmodeEnable();
+
+void RunOnDeathCommand(const std::string& cmd);
 
 // no-op on macOS
 void RegisterGoldIcon(const std::filesystem::path& icoSource);
