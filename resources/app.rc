@@ -1,0 +1,4 @@
+// rans0m.csproj: <ApplicationIcon>main_ico.ico</ApplicationIcon> - the first ICON
+// resource in the exe becomes its default Explorer/taskbar icon, so this alone is
+// enough (no ID indirection needed for just one).
+101 ICON "app.ico"
