@@ -10,7 +10,6 @@ namespace rd {
 namespace {
 constexpr UINT kCallbackMsg = WM_APP + 1;
 constexpr UINT kIdClose = 1;
-constexpr UINT kIdHardmode = 2;
 constexpr UINT kIdConfig = 3;
 constexpr wchar_t kClassName[] = L"RansomdoorsTrayWnd";
 
@@ -29,8 +28,9 @@ struct TrayIcon::Impl {
     NOTIFYICONDATAW nid{};
     HICON icon = nullptr;
     bool closeEnabled = true;
-    bool hardmodeChecked = false;
     TrayIcon* self = nullptr;
+
+    UINT pendingCommand = 0;
 
     static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         auto* impl = reinterpret_cast<Impl*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
@@ -43,8 +43,6 @@ struct TrayIcon::Impl {
                 HMENU menu = CreatePopupMenu();
                 AppendMenuW(menu, MF_STRING | (impl->closeEnabled ? MF_ENABLED : MF_GRAYED), kIdClose, L"Close");
                 AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
-                AppendMenuW(menu, MF_STRING | (impl->hardmodeChecked ? MF_CHECKED : MF_UNCHECKED), kIdHardmode,
-                            L"Hardmode");
                 AppendMenuW(menu, MF_STRING, kIdConfig, L"Config...");
 
                 SetForegroundWindow(hwnd); // required or the menu won't dismiss on outside click
@@ -54,10 +52,7 @@ struct TrayIcon::Impl {
             return 0;
         }
         if (msg == WM_COMMAND && impl) {
-            UINT id = LOWORD(wParam);
-            if (id == kIdClose && impl->closeEnabled && impl->self->onClose) impl->self->onClose();
-            if (id == kIdHardmode && impl->self->onToggleHardmode) impl->self->onToggleHardmode();
-            if (id == kIdConfig && impl->self->onOpenConfig) impl->self->onOpenConfig();
+            impl->pendingCommand = LOWORD(wParam);
             return 0;
         }
         return DefWindowProcW(hwnd, msg, wParam, lParam);
@@ -77,8 +72,7 @@ TrayIcon::TrayIcon(const std::string& tooltip) : impl_(new Impl()) {
         classRegistered = true;
     }
 
-    // A real (if invisible) top-level window, not HWND_MESSAGE - SetForegroundWindow
-    // (needed so the popup menu dismisses on an outside click) requires one.
+    // real (if invisible) top-level window, not HWND_MESSAGE - SetForegroundWindow needs one to dismiss the popup menu on an outside click
     impl_->hwnd = CreateWindowW(kClassName, L"", WS_POPUP, 0, 0, 0, 0, nullptr, nullptr, GetModuleHandleW(nullptr),
                                  nullptr);
     if (!impl_->hwnd) return;
@@ -107,7 +101,6 @@ TrayIcon::~TrayIcon() {
 }
 
 void TrayIcon::SetCloseEnabled(bool enabled) { impl_->closeEnabled = enabled; }
-void TrayIcon::SetHardmodeChecked(bool checked) { impl_->hardmodeChecked = checked; }
 
 void TrayIcon::Pump() {
     if (!impl_->hwnd) return;
@@ -116,6 +109,11 @@ void TrayIcon::Pump() {
         TranslateMessage(&msg);
         DispatchMessageW(&msg);
     }
+
+    UINT id = impl_->pendingCommand;
+    impl_->pendingCommand = 0;
+    if (id == kIdClose && impl_->closeEnabled && onClose) onClose();
+    if (id == kIdConfig && onOpenConfig) onOpenConfig();
 }
 
 } // namespace rd

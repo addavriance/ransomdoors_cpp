@@ -14,12 +14,10 @@ public:
     TrayIcon& operator=(const TrayIcon&) = delete;
 
     void SetCloseEnabled(bool enabled);
-    void SetHardmodeChecked(bool checked);
 
     void Pump();
 
     std::function<void()> onClose;
-    std::function<void()> onToggleHardmode;
     std::function<void()> onOpenConfig;
 
 private:

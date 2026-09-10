@@ -1,25 +1,3 @@
 #include <windows.h>
-#include "resource.h"
 
 101 ICON "app.ico"
-
-IDD_CONFIG DIALOGEX 0, 0, 240, 184
-STYLE DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "RANS0M Config"
-FONT 8, "MS Shell Dlg"
-BEGIN
-    CONTROL "Spawn automatically", IDC_SPAWN_AUTO, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 10, 10, 120, 10
-    LTEXT "Min spawn delay (sec)", -1, 10, 27, 110, 10
-    EDITTEXT IDC_MIN_DELAY, 140, 25, 60, 12, ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT "Max spawn delay (sec)", -1, 10, 43, 110, 10
-    EDITTEXT IDC_MAX_DELAY, 140, 41, 60, 12, ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT "Infection duration (sec)", -1, 10, 59, 110, 10
-    EDITTEXT IDC_DURATION, 140, 57, 60, 12, ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT "Ransom amount", -1, 10, 75, 110, 10
-    EDITTEXT IDC_AMOUNT, 140, 73, 60, 12, ES_AUTOHSCROLL | ES_NUMBER
-    CONTROL "Run command on death (DANGEROUS - resets off every launch)", IDC_EXEC_CMD, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 10, 96, 220, 10
-    LTEXT "Command", -1, 10, 112, 110, 10
-    EDITTEXT IDC_CMD, 10, 126, 220, 12, ES_AUTOHSCROLL
-    DEFPUSHBUTTON "OK", IDOK, 60, 155, 50, 14
-    PUSHBUTTON "Cancel", IDCANCEL, 130, 155, 50, 14
-END

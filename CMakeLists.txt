@@ -16,9 +16,7 @@ if(NOT TARGET SDL2::SDL2 OR NOT TARGET SDL2_image::SDL2_image OR NOT TARGET SDL2
     set(SDL_TESTS OFF CACHE BOOL "" FORCE)
     set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
 
-    # We only ever load PNG/JPG textures and WAV audio - everything else pulls in
-    # heavy third-party codec submodules (dav1d, libjxl, libvorbis, mpg123, ...)
-    # that are unnecessary here and flaky to fetch over a plain git clone.
+    # only ever load PNG/JPG + WAV - other codec submodules are unnecessary and flaky to fetch
     set(SDL2IMAGE_TESTS OFF CACHE BOOL "" FORCE)
     set(SDL2IMAGE_AVIF OFF CACHE BOOL "" FORCE)
     set(SDL2IMAGE_JXL OFF CACHE BOOL "" FORCE)
@@ -36,8 +34,7 @@ if(NOT TARGET SDL2::SDL2 OR NOT TARGET SDL2_image::SDL2_image OR NOT TARGET SDL2
     set(SDL2MIXER_WAVPACK OFF CACHE BOOL "" FORCE)
     set(SDL2MIXER_MIDI OFF CACHE BOOL "" FORCE)
 
-    # Only need Latin glyph shaping for our own hardcoded labels - HarfBuzz drags in
-    # a whole extra build (and its own git clone) for nothing we use.
+    # only need Latin glyph shaping for our hardcoded labels - HarfBuzz is unnecessary
     set(SDL2TTF_HARFBUZZ OFF CACHE BOOL "" FORCE)
 
     FetchContent_Declare(SDL2 GIT_REPOSITORY https://github.com/libsdl-org/SDL.git GIT_TAG release-2.30.9 GIT_SHALLOW TRUE)
@@ -51,8 +48,7 @@ if(NOT TARGET SDL2::SDL2 OR NOT TARGET SDL2_image::SDL2_image OR NOT TARGET SDL2
     FetchContent_MakeAvailable(SDL2_ttf)
 endif()
 
-# Config.cpp's JSON: single header, negligible build cost (no .cpp to compile),
-# far less risk than hand-rolling a parser for something this well-trodden.
+# single header, negligible build cost, far less risk than hand-rolling a JSON parser
 find_package(nlohmann_json QUIET CONFIG)
 if(NOT TARGET nlohmann_json::nlohmann_json)
     include(FetchContent)
@@ -61,10 +57,25 @@ if(NOT TARGET nlohmann_json::nlohmann_json)
     FetchContent_MakeAvailable(nlohmann_json)
 endif()
 
-# WIN32 puts this on the GUI subsystem (no console box popping up over the jumpscare
-# overlay); the keyword is a no-op on non-Windows targets so it's safe unconditionally.
-# rans0m.csproj: <ApplicationIcon>main_ico.ico</ApplicationIcon> - without this the exe
-# just gets the generic default icon instead of the real one in Explorer/taskbar.
+# Dear ImGui has no CMakeLists.txt of its own - fetch sources only, build our own static lib target
+include(FetchContent)
+FetchContent_Declare(imgui GIT_REPOSITORY https://github.com/ocornut/imgui.git GIT_TAG v1.91.0 GIT_SHALLOW TRUE)
+FetchContent_GetProperties(imgui)
+if(NOT imgui_POPULATED)
+    FetchContent_Populate(imgui)
+endif()
+add_library(imgui STATIC
+    ${imgui_SOURCE_DIR}/imgui.cpp
+    ${imgui_SOURCE_DIR}/imgui_draw.cpp
+    ${imgui_SOURCE_DIR}/imgui_tables.cpp
+    ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl2.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_sdlrenderer2.cpp
+)
+target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends)
+target_link_libraries(imgui PUBLIC SDL2::SDL2)
+
+# WIN32 puts this on the GUI subsystem (no console box popping up); no-op on non-Windows targets
 if(WIN32)
     set(RANSOMDOORS_RC resources/app.rc)
 endif()
@@ -77,31 +88,32 @@ add_executable(ransomdoors WIN32
     src/audio/AudioManager.cpp
     src/coins/CoinManager.cpp
     src/config/Config.cpp
-    src/consent/HardModeConsent.cpp
     src/ui/Window.cpp
     src/ui/Text.cpp
     src/ui/TauntWindow.cpp
     src/ui/RansomWindow.cpp
     src/ui/ThankYouWindow.cpp
+    src/ui/CrucifixWindow.cpp
+    src/ui/GifAnimation.cpp
     src/ui/IconBlockOverlay.cpp
+    src/ui/ConfigWindow.cpp
+    src/ui/VignetteWindow.cpp
     src/platform/Platform_win.cpp
     src/platform/Platform_mac.mm
     src/platform/TrayIcon_win.cpp
     src/platform/TrayIcon_mac.mm
-    src/platform/ConfigDialog_win.cpp
-    src/platform/ConfigDialog_mac.mm
 )
 
 target_include_directories(ransomdoors PRIVATE src)
 
 if(APPLE)
-    set_source_files_properties(src/platform/Platform_mac.mm src/platform/TrayIcon_mac.mm src/platform/ConfigDialog_mac.mm
+    set_source_files_properties(src/platform/Platform_mac.mm src/platform/TrayIcon_mac.mm
         PROPERTIES COMPILE_FLAGS "-x objective-c++")
     target_link_libraries(ransomdoors PRIVATE "-framework Foundation")
-    set_source_files_properties(src/platform/Platform_win.cpp src/platform/TrayIcon_win.cpp src/platform/ConfigDialog_win.cpp
+    set_source_files_properties(src/platform/Platform_win.cpp src/platform/TrayIcon_win.cpp
         PROPERTIES HEADER_FILE_ONLY TRUE)
 else()
-    set_source_files_properties(src/platform/Platform_mac.mm src/platform/TrayIcon_mac.mm src/platform/ConfigDialog_mac.mm
+    set_source_files_properties(src/platform/Platform_mac.mm src/platform/TrayIcon_mac.mm
         PROPERTIES HEADER_FILE_ONLY TRUE)
 endif()
 
@@ -115,6 +127,7 @@ target_link_libraries(ransomdoors PRIVATE
     SDL2_mixer::SDL2_mixer
     SDL2_ttf::SDL2_ttf
     nlohmann_json::nlohmann_json
+    imgui
 )
 
 add_custom_command(TARGET ransomdoors POST_BUILD

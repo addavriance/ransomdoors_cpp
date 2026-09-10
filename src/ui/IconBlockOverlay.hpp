@@ -9,9 +9,7 @@
 
 namespace rd {
 
-// like in DOORS blocks slots, but this blocks desktop icons
-// Known gap: Win+D can still hide it (desktop rises above HWND_BOTTOM);
-// WS_EX_TOPMOST would fix it but no, it will above real app windows
+// blocks desktop icons; known gap: Win+D can still hide it (desktop rises above HWND_BOTTOM)
 class IconBlockOverlay {
 public:
     IconBlockOverlay(int screenX, int screenY, int screenW, int screenH, const std::string& stopSignPath);
