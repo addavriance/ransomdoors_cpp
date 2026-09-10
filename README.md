@@ -1,50 +1,44 @@
-# RANS0M
+# RANS0M (C++)
 
 A fan-made recreation of the RANSOM (A-90) entity from the Roblox game
-*Doors*, as a desktop app. It randomly pops the entity's face up on
-your screen, you need to stop moving your mouse and stay off the keyboard, or it
-"infects" your PC: 8 gold coin files get scattered around your user folders,
-and you have to drag at least 5 of them onto the ransom window before the timer runs
-out. Fail to pay in time and it crashes your computer.
+*Doors*, as a desktop app. It pops the entity's face up on your screen at
+random; stay off your mouse and keyboard or it "infects" your PC — gold coin
+files get scattered around your folders, and you have to drag enough of them
+onto the ransom window before the timer runs out. Fail to pay in time and,
+if you enabled it, it crashes your computer for real.
 
-This is a C++/SDL2 rewrite of the original WinForms app (Windows-primary; macOS
-support is in development), same logic underneath. Adds a segmented progress bar
-during the download jumpscare, desktop icon blockers during the ransom, a simple
-placeholder win sound, and a tray-toggled Hardmode switch (off by default) instead
-of the real shutdown/BSOD always being live.
+<!-- screenshot -->
+<!-- screenshot -->
 
-This was built for fun, it's kind of poorly coded.
-Right now the only noticable bug is that the ransom window doesn't always stay on top of other windows, but it should be fine for the most part. It can't go on top of fullscreen apps.
+This is a C++/SDL2 rewrite of the original WinForms app, same logic
+underneath, with a more structured codebase than the original source. The
+repo ships without binaries, and the final build is roughly half the size
+of the original. Built for fun, not perfectly polished.
 
 ## Read this before running it
 
-This app **really** shuts down or crashes your computer if hard mode is enabled and
-you don't pay the fake ransom in time. That's not a metaphor, it calls
-`shutdown /s /t 0`, or (if elevated) marks itself as a critical process so that
-closing it takes Windows down with it. Hard mode is off by default - toggle it from
-the tray icon, which asks for confirmation before turning it on. This means you
-should:
+If you enable "crash on death" in Config, it **really** shuts down or
+crashes your computer when the timer runs out unpaid. Not a metaphor — it
+calls `shutdown /s /t 0`, or (if elevated) BSODs. Off by default, requires
+an explicit confirmation in the Config dialog, and resets every launch — it
+never persists to disk. So:
 
-- Only enable it on a machine you own, save your work first, and expect it to
-  actually shut down or crash at some point.
-- Not run it on anyone else's computer without them knowing exactly what
-  it does and agreeing to it.
+- Only enable it on a machine you own, save your work first, and expect it
+  to actually shut down or crash.
+- Never run it on someone else's computer without them knowing exactly
+  what it does and agreeing to it.
 
-It is not malware in the sense of trying to steal anything, hide itself, or
-spread, it doesn't touch your files besides dropping/deleting its own
-harmless `.gold` marker files, and it's fully open source so you can check
-that yourself. See [LICENSE.md](LICENSE.md) for the full terms and
-disclaimer.
+It's not malware in the sense of stealing anything, hiding, or spreading —
+it doesn't touch your files besides its own `.gold`/`.crucifix` marker
+files, and it's fully open source. See [LICENSE.md](LICENSE.md).
 
 ## Requirements
 
-- Windows is the primary target (uses Win32 hooks, `shutdown.exe`, the registry,
-  etc.)
-- macOS support is **in development** - the `Platform_mac.mm` backend exists but
-  is largely unverified on real hardware
+- Windows is the primary target (Win32 hooks, `shutdown.exe`, the registry)
+- macOS backend exists in source but is unverified on real hardware
 - CMake 3.20+ and a C++17 compiler
-- SDL2, SDL2_image, SDL2_mixer, SDL2_ttf - fetched and built automatically via
-  CMake's `FetchContent` if not already installed, no manual setup needed
+- Everything else (SDL2 + friends, Dear ImGui, nlohmann/json) is fetched and
+  built automatically via CMake's `FetchContent` — no manual setup
 
 ## Building & running
 
@@ -53,27 +47,23 @@ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release
 ```
 
-Produces `ransomdoors.exe` (or the macOS binary, once that target is finished) with
-the SDL DLLs and an `assets/` folder copied next to it automatically as a post-build
-step. First configure takes a couple of minutes while SDL is fetched and built;
-rebuilds after that are fast.
+First configure takes a few minutes while dependencies are fetched and
+built; rebuilds after that are fast. Produces a single self-contained
+`ransomdoors.exe` — everything (SDL2 and friends, all assets) is statically
+linked and embedded into the binary, no DLLs or `assets/` folder needed
+next to it.
 
-The app runs from a system tray icon (right-click it for a Close option, disabled
-while a ransom is active, plus the Hardmode toggle and Config dialog described
-below).
+Runs from a system tray icon — right-click for Close and Config.
 
 ## Configuration
 
-Right-click the tray icon → Config to edit spawn timing, infection duration, and
-the ransom amount. First launch opens this automatically. Saved to
-`config.json` next to `hardmode.consent` (see above for the path).
+Right-click the tray icon → Config. Spawn timing, infection duration, ransom
+amount, and whether coins scatter across your real folders or into a
+temporary "drawers" folder. First launch opens this automatically.
 
-`Config` also has a "Run command on death" option - far more dangerous than
-Hardmode, since it runs an arbitrary command instead of one of two fixed,
-reviewable syscalls. It's session-only by design: it always starts unchecked
-and is never written to `config.json`, so a tampered config file can't silently
-arm it for next time - you have to knowingly re-enable it, in the dialog, every
-run, and confirm the exact command before it's accepted.
+"Run command on death" is far more dangerous than crash-on-death — it runs
+an arbitrary command instead of a fixed, reviewable one. Same session-only
+protection: unchecked by default, confirmed explicitly, never saved.
 
 ## Credits
 
