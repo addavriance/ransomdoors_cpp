@@ -5,11 +5,15 @@
 namespace rd {
 
 namespace {
+constexpr const char* kTauntTitles[] = {
+    "RANS0M",       "MOSNAR",  "RANSOM",         "M0NARS",
+    "YOU ARE AN IDIOT", "Untitled", "Untitled (3)", "I FOUND YOU",
+    "RANSOM.exe",   "RAANNNSSSSOOOOOMMMMMM", "times up", "GIVE MONEY",
+    "ERROR",        "DHAUFGH", "_________",      "IMG.JPG",
+};
+
 std::string RandomTitle() {
-    int len = 6 + std::rand() % 3; // 6-8 chars
-    std::string s(len, ' ');
-    for (int i = 0; i < len; ++i) s[i] = static_cast<char>('A' + std::rand() % 26);
-    return s;
+    return kTauntTitles[std::rand() % (sizeof(kTauntTitles) / sizeof(kTauntTitles[0]))];
 }
 } // namespace
 

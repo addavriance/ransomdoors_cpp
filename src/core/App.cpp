@@ -8,7 +8,6 @@
 #include <cmath>
 #include <cstdlib>
 
-#include "../platform/ConfigDialog.hpp"
 #include "../platform/Platform.hpp"
 
 namespace rd {
@@ -16,8 +15,8 @@ namespace rd {
 namespace {
 
 constexpr std::array<const char*, 8> kTauntImages = {
-    "images/glitch.jpg",  "images/idiot.png",        "images/ransom_idle.png", "images/ransom_random.png",
-    "images/stop_sign.png", "images/static1.png",    "images/taunt2.jpg",      "images/taunt3.jpeg",
+    "images/glitch1.jpg", "images/glitch2.jpeg",   "images/glitch3.jpg",    "images/glitch4.jpg",
+    "images/glitch5.jpg", "images/idiot.png",      "images/tauntface.png",  "images/tauntflower.png",
 };
 
 std::filesystem::path PlatformConfigRoot() {
@@ -50,6 +49,9 @@ std::filesystem::path App::AssetPath(const std::string& relative) const {
 }
 
 bool App::Init() {
+    // heals a crashed/force-killed previous run's infected cursor
+    Platform::RestoreCursor();
+
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0) return false;
     if (!(IMG_Init(IMG_INIT_PNG | IMG_INIT_JPG) & (IMG_INIT_PNG | IMG_INIT_JPG))) return false;
     if (TTF_Init() != 0) return false;
@@ -59,7 +61,10 @@ bool App::Init() {
     audio_.LoadSfx("install", AssetPath("sounds/install.wav").string());
     audio_.LoadSfx("cash", AssetPath("sounds/cash.wav").string());
     audio_.LoadSfx("attack", AssetPath("sounds/attack.wav").string());
-    audio_.LoadSfx("tada", AssetPath("sounds/tada.wav").string());
+    audio_.LoadSfx("thankyou", AssetPath("sounds/thankyou.wav").string());
+    audio_.LoadSfx("crucifix", AssetPath("sounds/crucifix.wav").string());
+    audio_.LoadSfx("tauntSpawn", AssetPath("sounds/tauntSpawn.wav").string());
+    audio_.LoadSfx("tauntLeave", AssetPath("sounds/tauntLeave.wav").string());
     audio_.LoadMusic("layer1", AssetPath("sounds/layer1.wav").string());
     audio_.LoadMusic("layer2", AssetPath("sounds/layer2.wav").string());
     audio_.LoadMusic("layer3", AssetPath("sounds/layer3.wav").string());
@@ -82,40 +87,48 @@ bool App::Init() {
     texRansomAttack_ = overlay_->LoadTexture(AssetPath("images/ransom_attack.png").string());
     texProgressBar_ = overlay_->LoadTexture(AssetPath("images/progress_bar.png").string());
     texProgressElem_ = overlay_->LoadTexture(AssetPath("images/progress_elem.png").string());
+    attackGif_ = std::make_unique<GifAnimation>(overlay_->Renderer(), AssetPath("images/ransom_attack.gif").string());
+    staticGif_ = std::make_unique<GifAnimation>(overlay_->Renderer(), AssetPath("images/static.gif").string());
 
     text_ = std::make_unique<TextRenderer>(overlay_->Renderer());
     text_->LoadFont(AssetPath("fonts/Cousine-Bold.ttf").string());
 
-    consent_ = std::make_unique<HardModeConsent>(ConfigDir());
+    // preload gif (original size was 17mb lol)
+    crucifixWindow_ = std::make_unique<CrucifixWindow>(screenW_, screenH_, AssetPath("images/repent.gif").string());
+    vignetteWindow_ = std::make_unique<VignetteWindow>(bounds.x, bounds.y, screenW_, screenH_,
+                                                          AssetPath("images/red_vignette.gif").string());
+
     coins_ = std::make_unique<CoinManager>(ConfigDir());
-    Platform::RegisterGoldIcon(AssetPath("images/Gold.ico"));
+    Platform::RegisterFileTypeIcon(".gold1", AssetPath("images/Gold1.ico"));
+    Platform::RegisterFileTypeIcon(".gold2", AssetPath("images/Gold2.ico"));
+    Platform::RegisterFileTypeIcon(".gold3", AssetPath("images/Gold3.ico"));
+    Platform::RegisterFileTypeIcon(".gold4", AssetPath("images/Gold4.ico"));
+    Platform::RegisterFileTypeIcon(".gold5", AssetPath("images/Gold5.ico"));
+    Platform::RegisterFileTypeIcon(".gold6", AssetPath("images/HoneyPot.ico"));
+    Platform::RegisterFileTypeIcon(".crucifix", AssetPath("images/crucifix.ico"));
     Platform::InstallKeyboardHook([this] { globalKeyPressed_ = true; });
+
+    configAssets_ = ConfigWindowAssets{AssetPath("fonts/Cousine-Bold.ttf").string(),
+                                        AssetPath("images/Starlight.png").string()};
 
     bool firstRun = !std::filesystem::exists(ConfigDir() / "config.json");
     config_.Load(ConfigDir());
     if (firstRun) {
-        if (Platform::ShowConfigDialog(config_)) config_.Save(ConfigDir());
+        if (ConfigWindow::ShowModal(config_, configAssets_)) config_.Save(ConfigDir());
     }
     SetPhaseDurationMs(PhaseId::RansomActive, static_cast<std::uint32_t>(config_.infectionDurationSec) * 1000);
 
+    configWindow_.onAccepted = [this](const Config& cfg, bool spawnRequested) {
+        config_ = cfg;
+        config_.Save(ConfigDir());
+        SetPhaseDurationMs(PhaseId::RansomActive, static_cast<std::uint32_t>(config_.infectionDurationSec) * 1000);
+        idleTimerMs_ = RollIdleTimerMs(); // apply new spawn bounds immediately
+        if (spawnRequested && sequencer_.Current() == PhaseId::Idle) sequencer_.Start();
+    };
+
     trayIcon_ = std::make_unique<TrayIcon>("RANS0M");
-    trayIcon_->SetHardmodeChecked(consent_->IsEnabled());
     trayIcon_->onClose = [this] { running_ = false; };
-    trayIcon_->onToggleHardmode = [this] {
-        if (consent_->IsEnabled()) {
-            consent_->Disable();
-        } else if (Platform::ConfirmHardmodeEnable()) {
-            consent_->Enable();
-        }
-        trayIcon_->SetHardmodeChecked(consent_->IsEnabled());
-    };
-    trayIcon_->onOpenConfig = [this] {
-        if (Platform::ShowConfigDialog(config_)) {
-            config_.Save(ConfigDir());
-            SetPhaseDurationMs(PhaseId::RansomActive, static_cast<std::uint32_t>(config_.infectionDurationSec) * 1000);
-            idleTimerMs_ = RollIdleTimerMs(); // apply new spawn bounds immediately
-        }
-    };
+    trayIcon_->onOpenConfig = [this] { configWindow_.Open(config_, configAssets_); };
 
     sequencer_.SetOnPhaseEnter([this](const PhaseSpec& phase) { OnPhaseEnter(phase); });
 
@@ -133,9 +146,14 @@ std::uint32_t App::RollIdleTimerMs() {
 
 void App::Shutdown() {
     Platform::UninstallKeyboardHook();
+    if (coins_) coins_->DeleteAllCoins(); // don't leave scattered coins behind on exit
+    Platform::RestoreCursor();
     trayIcon_.reset();
+    configWindow_.Close();
     ransomWindow_.reset();
     thankYouWindow_.reset();
+    crucifixWindow_.reset();
+    vignetteWindow_.reset();
     tauntWindows_.clear();
     iconBlockOverlay_.reset();
     warningIcon_.reset();
@@ -157,6 +175,7 @@ void App::OnPhaseEnter(const PhaseSpec& phase) {
         case PhaseId::Idle:
             ransomWindow_.reset();
             thankYouWindow_.reset();
+            if (crucifixWindow_) crucifixWindow_->Hide();
             tauntWindows_.clear();
             iconBlockOverlay_.reset();
             ransomFlashWindow_.reset();
@@ -188,7 +207,18 @@ void App::OnPhaseEnter(const PhaseSpec& phase) {
             break;
 
         case PhaseId::RansomActive: {
-            coins_->ScatterRandomCoins(8);
+            wasCrucifix_ = false;
+            Platform::SetInfectedCursor(AssetPath("images/infectedcursor.cur"));
+            if (vignetteWindow_) vignetteWindow_->Show();
+            // no dark-red wallpaper for now: dead on Win11 24H2's DWM-composited desktop
+            int targetGold = static_cast<int>(config_.ransomAmount * 1.2);
+            if (config_.useDrawerMode) {
+                coins_->ScatterDrawerCoins(targetGold, config_.infectionDurationSec);
+                Platform::OpenFolder(coins_->DrawerFolderPath());
+            } else {
+                int maxDepth = std::clamp(2 + config_.infectionDurationSec / 45, 2, 8);
+                coins_->ScatterRandomCoins(targetGold, maxDepth);
+            }
             ransomWindow_ = std::make_unique<RansomWindow>(
                 screenW_, screenH_, *coins_, AssetPath("images/ransom_idle.png").string(),
                 AssetPath("images/Gold.png").string(), AssetPath("fonts/Cousine-Bold.ttf").string(),
@@ -196,7 +226,8 @@ void App::OnPhaseEnter(const PhaseSpec& phase) {
             ransomWindow_->onFullyPaid = [this] { sequencer_.ReportSignal(); };
             ransomWindow_->onWantsMoreTaunt = [this] { SpawnTaunt(); };
             ransomWindow_->onCoinRedeemed = [this] { audio_.PlaySfx("cash"); };
-            for (int i = 0; i < 6; ++i) SpawnTaunt();
+            ransomWindow_->onCrucifix = [this] { wasCrucifix_ = true; audio_.PlaySfx("crucifix"); };
+            for (int i = 0; i < 9; ++i) SpawnTaunt();
             ransomFlashAlpha_ = 1.0f;
             ransomMusicStage_ = 0;
 
@@ -213,31 +244,51 @@ void App::OnPhaseEnter(const PhaseSpec& phase) {
             }
             flashBurstRemaining_ = 0;
             flashFaceElapsedMs_ = 0;
-            flashNextBurstMs_ = rng_() % 5000; // matches Random.Next(5000)
+            flashNextBurstMs_ = rng_() % 5000;
             break;
         }
 
-        case PhaseId::Resolved:
+        case PhaseId::Resolved: {
+            // captured before reset() below - ThankYou/CrucifixWindow spawn here
+            SDL_Point ransomPos = ransomWindow_ ? ransomWindow_->Position() : SDL_Point{screenW_ / 2, screenH_ / 2};
+
             ransomWindow_.reset();
             tauntWindows_.clear();
             iconBlockOverlay_.reset();
             ransomFlashWindow_.reset();
+            if (vignetteWindow_) vignetteWindow_->Hide();
+            coins_->DeleteAllCoins(); // sweeps unredeemed leftovers too
+            Platform::RestoreCursor();
             audio_.StopMusic();
-            thankYouWindow_ = std::make_unique<ThankYouWindow>(
-                screenW_, screenH_, AssetPath("images/ok_sign.png").string(),
-                AssetPath("fonts/Cousine-Bold.ttf").string());
+            if (wasCrucifix_ && crucifixWindow_) {
+                crucifixWindow_->SetPosition(ransomPos);
+                crucifixWindow_->ResetAnimation();
+                crucifixWindow_->Show();
+                // phase ends right as the gif does
+                SetPhaseDurationMs(PhaseId::Resolved, crucifixWindow_->GifDurationMs());
+            } else {
+                if (crucifixWindow_) crucifixWindow_->Hide();
+                SetPhaseDurationMs(PhaseId::Resolved, 4700); // covers the full reveal animation
+                thankYouWindow_ = std::make_unique<ThankYouWindow>(
+                    screenW_, screenH_, ransomPos, AssetPath("images/ransom_idle.png").string(),
+                    AssetPath("images/ok_sign.png").string(), AssetPath("images/thx_txt.png").string());
+                thankYouWindow_->onReveal = [this] { audio_.PlaySfx("thankyou"); };
+            }
             break;
+        }
 
         case PhaseId::TimedOut: {
             ransomWindow_.reset();
             tauntWindows_.clear();
             iconBlockOverlay_.reset();
             ransomFlashWindow_.reset();
+
+            if (vignetteWindow_) vignetteWindow_->Hide();
             coins_->DeleteAllCoins();
             audio_.StopMusic();
+
             if (config_.execCmdOnDeath) Platform::RunOnDeathCommand(config_.cmdOnDeath);
-            bool hardModeEnabled = consent_->IsEnabled();
-            sequencer_.ReportHardModeDecision(hardModeEnabled);
+            sequencer_.ReportHardModeDecision(config_.crashOnDeath);
             break;
         }
 
@@ -254,9 +305,12 @@ void App::OnPhaseEnter(const PhaseSpec& phase) {
 void App::SpawnTaunt() {
     const char* image = kTauntImages[rng_() % kTauntImages.size()];
     tauntWindows_.emplace_back(AssetPath(image).string(), screenW_, screenH_);
+    audio_.PlaySfx("tauntSpawn");
 }
 
 void App::HandleEvent(const SDL_Event& e) {
+    configWindow_.HandleEvent(e);
+
     switch (e.type) {
         case SDL_QUIT:
             running_ = false;
@@ -319,12 +373,15 @@ void App::Update(std::uint32_t deltaMs) {
         installSfxPlayed_ = true;
     }
 
-    // layer1 at t=0, layer2 at 26s, layer3 at 52s
+
     if (current == PhaseId::RansomActive) {
-        if (t >= 52000 && ransomMusicStage_ < 2) {
+        int layer3StartSec = std::max(0, config_.infectionDurationSec - 26);
+        std::uint32_t layer3Ms = static_cast<std::uint32_t>(layer3StartSec) * 1000;
+        std::uint32_t layer2Ms = layer3Ms / 2;
+        if (t >= layer3Ms && ransomMusicStage_ < 2) {
             audio_.PlayMusicLoop("layer3");
             ransomMusicStage_ = 2;
-        } else if (t >= 26000 && ransomMusicStage_ < 1) {
+        } else if (t >= layer2Ms && ransomMusicStage_ < 1) {
             audio_.PlayMusicLoop("layer2");
             ransomMusicStage_ = 1;
         }
@@ -345,10 +402,19 @@ void App::Update(std::uint32_t deltaMs) {
     }
 
     if (ransomWindow_) ransomWindow_->Update(deltaMs);
+    if (crucifixWindow_) crucifixWindow_->Update(deltaMs);
+    if (thankYouWindow_) thankYouWindow_->Update(deltaMs);
+    if (attackGif_) attackGif_->Update(deltaMs);
+    if (staticGif_) staticGif_->Update(deltaMs);
+    if (vignetteWindow_) vignetteWindow_->Update(deltaMs);
 
     for (auto& taunt : tauntWindows_) taunt.Update(deltaMs);
     tauntWindows_.erase(std::remove_if(tauntWindows_.begin(), tauntWindows_.end(),
-                                        [](const TauntWindow& t) { return t.Expired(); }),
+                                        [this](const TauntWindow& t) {
+                                            if (!t.Expired()) return false;
+                                            audio_.PlaySfx("tauntLeave");
+                                            return true;
+                                        }),
                          tauntWindows_.end());
 }
 
@@ -360,8 +426,6 @@ void App::DrawCenteredShaking(SDL_Texture* tex, int size) {
     SDL_RenderCopy(overlay_->Renderer(), tex, nullptr, &dst);
 }
 
-// Ransomed()'s "Random flashing Ransom faces" thread: every ~0-5s, 2-5 faces (size
-// 50-400, random pos) flash one at a time, ~25ms each.
 void App::UpdateRansomFlash(std::uint32_t deltaMs) {
     if (!ransomFlashWindow_ || !ransomFlashWindow_->Valid()) return;
 
@@ -380,12 +444,11 @@ void App::UpdateRansomFlash(std::uint32_t deltaMs) {
                 placeNextFace();
             } else {
                 ransomFlashWindow_->Hide();
-                flashNextBurstMs_ = rng_() % 5000; // matches Random.Next(5000)
+                flashNextBurstMs_ = rng_() % 5000;
             }
         }
     } else if (flashNextBurstMs_ <= deltaMs) {
-        // for(i=0; i<=Next(1,5); i++) runs N+1 times, N in [1,4] -> 2..5 flashes
-        flashBurstRemaining_ = 2 + static_cast<int>(rng_() % 4);
+        flashBurstRemaining_ = 2 + static_cast<int>(rng_() % 4); // 2..5 flashes
         flashFaceElapsedMs_ = 0;
         placeNextFace();
         ransomFlashWindow_->Show();
@@ -446,8 +509,18 @@ void App::RenderDownloadJumpscare(std::uint32_t t) {
     SDL_SetWindowOpacity(overlay_->Raw(), 1.0f);
     overlay_->Clear(139, 0, 0); // constant, no flicker
 
+    if (staticGif_ && staticGif_->Valid()) {
+        SDL_Texture* frame = staticGif_->CurrentFrame();
+        SDL_SetTextureColorMod(frame, 255, 60, 60);
+        SDL_SetTextureAlphaMod(frame, 40);
+        SDL_Rect dst{0, 0, screenW_, screenH_};
+        SDL_RenderCopy(overlay_->Renderer(), frame, nullptr, &dst);
+        SDL_SetTextureColorMod(frame, 255, 255, 255);
+        SDL_SetTextureAlphaMod(frame, 255);
+    }
+
     if (t < 800) {
-        DrawCenteredShaking(texRansomAttack_, 900); // pc_attack: Size(900,900), Zoom
+        DrawCenteredShaking(attackGif_ && attackGif_->Valid() ? attackGif_->CurrentFrame() : texRansomAttack_, 900);
     } else {
         std::uint32_t sinceInstall = t - 800;
         std::size_t target = std::min<std::size_t>(71, sinceInstall / 10);
@@ -468,7 +541,11 @@ void App::RenderDownloadJumpscare(std::uint32_t t) {
         int jitterY = static_cast<int>(rng_() % 11) - 5;
 
         if (text_) {
-            TextRenderer::Text label = text_->Get("DOWNLOADING...", 36, SDL_Color{240, 240, 240, 255});
+            static const char* kDownloadStates[5] = {"DOWNLOADING", "DOWNLOADING.", "DOWNLOADING..",
+                                                       "DOWNLOADING...", "DOWNLOADING"};
+            int step = static_cast<int>((sinceInstall / 120) % 5);
+            SDL_Color color = step == 4 ? SDL_Color{255, 0, 0, 255} : SDL_Color{255, 255, 255, 255};
+            TextRenderer::Text label = text_->Get(kDownloadStates[step], 36, color);
             if (label.texture) {
                 SDL_Rect dst{screenW_ / 2 - label.w / 2 + jitterX, screenH_ / 2 - 40 + jitterY, label.w, label.h};
                 SDL_RenderCopy(overlay_->Renderer(), label.texture, nullptr, &dst);
@@ -512,7 +589,16 @@ void App::RenderCrashBeat(std::uint32_t t, bool /*cutToBlackAfter*/) {
     SDL_SetWindowOpacity(overlay_->Raw(), 1.0f);
     if (t < 1000) {
         overlay_->Clear(139, 0, 0);
-        DrawCenteredShaking(texRansomAttack_, 900); // pc_attack: Size(900,900), Zoom
+        if (staticGif_ && staticGif_->Valid()) {
+            SDL_Texture* frame = staticGif_->CurrentFrame();
+            SDL_SetTextureColorMod(frame, 255, 60, 60);
+            SDL_SetTextureAlphaMod(frame, 40);
+            SDL_Rect dst{0, 0, screenW_, screenH_};
+            SDL_RenderCopy(overlay_->Renderer(), frame, nullptr, &dst);
+            SDL_SetTextureColorMod(frame, 255, 255, 255);
+            SDL_SetTextureAlphaMod(frame, 255);
+        }
+        DrawCenteredShaking(attackGif_ && attackGif_->Valid() ? attackGif_->CurrentFrame() : texRansomAttack_, 900);
     } else {
         overlay_->Clear(0, 0, 0);
     }
@@ -520,6 +606,8 @@ void App::RenderCrashBeat(std::uint32_t t, bool /*cutToBlackAfter*/) {
 }
 
 void App::Render() {
+    configWindow_.Render();
+
     PhaseId current = sequencer_.Current();
     std::uint32_t t = sequencer_.ElapsedMs();
 
@@ -565,8 +653,10 @@ void App::Render() {
     }
 
     if (thankYouWindow_) thankYouWindow_->Render();
+    if (crucifixWindow_) crucifixWindow_->Render();
 
     if (iconBlockOverlay_) iconBlockOverlay_->Render();
+    if (vignetteWindow_) vignetteWindow_->Render();
 
     for (auto& taunt : tauntWindows_) taunt.Render();
 }

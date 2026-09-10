@@ -19,6 +19,7 @@
 #include "coins/CoinManager.hpp"
 #include "core/App.hpp"
 #include "platform/Platform.hpp"
+#include "ui/CrucifixWindow.hpp"
 #include "ui/IconBlockOverlay.hpp"
 #include "ui/RansomWindow.hpp"
 #include "ui/TauntWindow.hpp"
@@ -134,16 +135,34 @@ int RunDebugWindow(const std::string& name) {
         });
 
     } else if (name == "thankyou") {
-        if (!InitDebugSDL(/*needTTF=*/true)) return 1;
+        if (!InitDebugSDL(/*needTTF=*/false)) return 1;
         SDL_GetDisplayBounds(0, &bounds);
-        std::cout << "Spawning ThankYouWindow standalone for 60s...\n";
-        rd::ThankYouWindow thankYou(bounds.w, bounds.h, DebugAssetPath("images/ok_sign.png").string(),
-                                     DebugAssetPath("fonts/Cousine-Bold.ttf").string());
-        RunStandaloneLoop(60000, [&](std::uint32_t, std::uint32_t) { thankYou.Render(); });
+        std::cout << "Spawning ThankYouWindow standalone for 60s (reveal choreography plays once, "
+                     "then holds on the final frame - there's no phase timer to reset it out here)...\n";
+        SDL_Point startPos{bounds.w / 4, bounds.h / 4}; // no real RansomWindow to grow from out here
+        rd::ThankYouWindow thankYou(bounds.w, bounds.h, startPos, DebugAssetPath("images/ransom_idle.png").string(),
+                                     DebugAssetPath("images/ok_sign.png").string(),
+                                     DebugAssetPath("images/thx_txt.png").string());
+        RunStandaloneLoop(60000, [&](std::uint32_t, std::uint32_t deltaMs) {
+            thankYou.Update(deltaMs);
+            thankYou.Render();
+        });
+
+    } else if (name == "crucifix") {
+        if (!InitDebugSDL(/*needTTF=*/false)) return 1;
+        SDL_GetDisplayBounds(0, &bounds);
+        rd::CrucifixWindow crucifix(bounds.w, bounds.h, DebugAssetPath("images/repent.gif").string());
+        crucifix.Show();
+        std::cout << "Spawning CrucifixWindow standalone, gif duration = " << crucifix.GifDurationMs()
+                  << "ms, looping it for 60s...\n";
+        RunStandaloneLoop(60000, [&](std::uint32_t, std::uint32_t deltaMs) {
+            crucifix.Update(deltaMs);
+            crucifix.Render();
+        });
 
     } else {
         std::cout << "Unknown --debug-window '" << name
-                  << "'. Known: iconblock, taunt, ransom, thankyou.\n"
+                  << "'. Known: iconblock, taunt, ransom, thankyou, crucifix.\n"
                   << "(The warning-icon beat isn't its own reusable class yet - it's inline in "
                   << "App::RenderWarning - so it's not covered here.)\n";
         return 1;

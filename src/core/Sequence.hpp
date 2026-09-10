@@ -33,11 +33,7 @@ struct PhaseSpec {
     std::string_view sfx;
 };
 
-// state machine as data
-//
-// RealHardMode only reachable via HardModeConsent - see Sequencer.
-// Not constexpr: Config patches RansomActive's durationMs at startup (see
-// SetPhaseDurationMs), so this needs to be a mutable, inline-linked global.
+// state machine as data; not constexpr since Config patches RansomActive's durationMs at startup (see SetPhaseDurationMs)
 inline PhaseSpec kSequence[] = {
     { PhaseId::Idle, "Idle", 0, ExitRule::ExternalSignal, PhaseId::Idle, PhaseId::Warning, "", "" },
 
@@ -50,8 +46,9 @@ inline PhaseSpec kSequence[] = {
     { PhaseId::RansomActive, "RansomActive", 78000, ExitRule::ExternalSignal,
       PhaseId::TimedOut, PhaseId::Resolved, "layer1", "" },
 
+    // sfx empty: ThankYouWindow's onReveal fires "thankyou" itself instead
     { PhaseId::Resolved, "Resolved", 3000, ExitRule::Timeout,
-      PhaseId::Idle, PhaseId::Idle, "", "tada" },
+      PhaseId::Idle, PhaseId::Idle, "", "" },
 
     { PhaseId::TimedOut, "TimedOut", 0, ExitRule::ExternalSignal,
       PhaseId::TimedOut, PhaseId::FakeCrash, "", "" },

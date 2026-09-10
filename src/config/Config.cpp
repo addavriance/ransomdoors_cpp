@@ -28,6 +28,7 @@ void Config::Load(const std::filesystem::path& configDir) {
     maxSpawnDelaySec = j.value("maxSpawnDelaySec", maxSpawnDelaySec);
     infectionDurationSec = j.value("infectionDurationSec", infectionDurationSec);
     ransomAmount = j.value("ransomAmount", ransomAmount);
+    useDrawerMode = j.value("useDrawerMode", useDrawerMode);
     cmdOnDeath = j.value("cmdOnDeath", cmdOnDeath);
     // execCmdOnDeath is intentionally never read from disk - see Config.hpp.
 }
@@ -42,6 +43,7 @@ void Config::Save(const std::filesystem::path& configDir) const {
         {"maxSpawnDelaySec", maxSpawnDelaySec},
         {"infectionDurationSec", infectionDurationSec},
         {"ransomAmount", ransomAmount},
+        {"useDrawerMode", useDrawerMode},
         {"cmdOnDeath", cmdOnDeath},
         // execCmdOnDeath intentionally never written - see Config.hpp.
     };

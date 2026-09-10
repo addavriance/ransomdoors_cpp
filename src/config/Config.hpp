@@ -13,7 +13,10 @@ struct Config {
     int maxSpawnDelaySec = 600;
     int infectionDurationSec = 90;
     int ransomAmount = 500;
+    bool useDrawerMode = false;
 
+    // both session-only: never read from or written to disk, always reset false on launch
+    bool crashOnDeath = false;
     bool execCmdOnDeath = false;
     std::string cmdOnDeath = "shutdown /s /t 0";
 

@@ -11,13 +11,16 @@
 #include "../audio/AudioManager.hpp"
 #include "../coins/CoinManager.hpp"
 #include "../config/Config.hpp"
-#include "../consent/HardModeConsent.hpp"
 #include "../platform/TrayIcon.hpp"
+#include "../ui/ConfigWindow.hpp"
+#include "../ui/CrucifixWindow.hpp"
+#include "../ui/GifAnimation.hpp"
 #include "../ui/IconBlockOverlay.hpp"
 #include "../ui/RansomWindow.hpp"
 #include "../ui/TauntWindow.hpp"
 #include "../ui/Text.hpp"
 #include "../ui/ThankYouWindow.hpp"
+#include "../ui/VignetteWindow.hpp"
 #include "../ui/Window.hpp"
 
 namespace rd {
@@ -52,13 +55,17 @@ private:
     AudioManager audio_;
     Config config_;
     std::unique_ptr<CoinManager> coins_;
-    std::unique_ptr<HardModeConsent> consent_;
     std::unique_ptr<TrayIcon> trayIcon_;
+    ConfigWindow configWindow_;
+    ConfigWindowAssets configAssets_;
     std::unique_ptr<Window> overlay_;
     std::unique_ptr<RansomWindow> ransomWindow_;
     std::unique_ptr<ThankYouWindow> thankYouWindow_;
+    std::unique_ptr<CrucifixWindow> crucifixWindow_;
+    bool wasCrucifix_ = false;
     std::vector<TauntWindow> tauntWindows_;
     std::unique_ptr<IconBlockOverlay> iconBlockOverlay_;
+    std::unique_ptr<VignetteWindow> vignetteWindow_;
 
     // small opaque icon, not real transparency
     std::unique_ptr<Window> warningIcon_;
@@ -73,9 +80,10 @@ private:
     SDL_Texture* texRansomAttack_ = nullptr;
     SDL_Texture* texProgressBar_ = nullptr;
     SDL_Texture* texProgressElem_ = nullptr;
+    std::unique_ptr<GifAnimation> attackGif_;
+    std::unique_ptr<GifAnimation> staticGif_;
 
-    // Ransomed()'s random flashing faces (RansomActive only): colorkey transparent,
-    // fixed max-size window, only a size x size sub-rect drawn per flash.
+    // random flashing faces (RansomActive only): colorkey transparent, fixed max-size window, only a size x size sub-rect drawn per flash
     std::unique_ptr<Window> ransomFlashWindow_;
     SDL_Texture* texRansomRandom_ = nullptr;
     std::uint32_t flashNextBurstMs_ = 0;

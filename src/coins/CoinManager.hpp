@@ -6,22 +6,38 @@
 
 namespace rd {
 
+namespace CoinValues {
+constexpr int kValues[7] = {0, 10, 50, 100, 150, 200, 500}; // index = extension
+int GetWeightedExtension();
+} // namespace CoinValues
+
+struct RedeemResult {
+    bool ok = false;
+    int value = 0;
+    bool isCrucifix = false;
+};
+
 // Not real DPAPI, portable HMAC-ish tag instead.
 class CoinManager {
 public:
     explicit CoinManager(std::filesystem::path configDir);
 
-    void ScatterRandomCoins(int count);
+
+    int ScatterRandomCoins(int targetGold, int maxSubfolderDepth);
+    int ScatterDrawerCoins(int targetGold, int infectionDurationSec);
+    std::filesystem::path DrawerFolderPath() const;
     void DeleteAllCoins();
 
-    bool TryRedeem(const std::filesystem::path& path);
+    RedeemResult TryRedeem(const std::filesystem::path& path);
 
     int RemainingCoins() const { return static_cast<int>(activeCoinPaths_.size()); }
 
 private:
     std::string InstallKey();
     std::string Tag(std::string_view token) const;
-    std::filesystem::path PickScatterDir() const;
+    std::filesystem::path PickScatterDir(int maxSubfolderDepth) const;
+    bool WriteCoinFile(const std::filesystem::path& dir, const std::string& extension,
+                        std::vector<std::filesystem::path>& createdPaths);
 
     // survives crash/kill via manifest file
     void CleanupOrphaned();

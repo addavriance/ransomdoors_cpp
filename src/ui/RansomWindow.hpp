@@ -13,13 +13,14 @@
 
 namespace rd {
 
-// 544x315, matches Ransomed.cs layout. Uses SDL_DROPFILE for coins.
+// 544x315. Uses SDL_DROPFILE for coins.
 class RansomWindow {
 public:
     RansomWindow(int screenW, int screenH, CoinManager& coins, const std::string& ransomIdlePath,
                  const std::string& goldPath, const std::string& fontPath, int ransomAmount = 500);
 
     Uint32 WindowId() const { return window_.Id(); }
+    SDL_Point Position() const { return window_.Position(); }
 
     void HandleDropFile(const std::filesystem::path& path);
     void Update(std::uint32_t deltaMs);
@@ -28,6 +29,7 @@ public:
     std::function<void()> onFullyPaid;
     std::function<void()> onWantsMoreTaunt; // 2%/200ms relocate+spawn
     std::function<void()> onCoinRedeemed;
+    std::function<void()> onCrucifix; // fired before onFullyPaid on a .crucifix pickup
 
 private:
     Window window_;
@@ -38,7 +40,7 @@ private:
     SDL_Texture* texGold_ = nullptr;
     int screenW_;
     int screenH_;
-    int ransomLeft_; // -100/coin, paid at <=0; initialized from ctor's ransomAmount
+    int ransomLeft_; // -per-coin value, paid at <=0; initialized from ctor's ransomAmount
 };
 
 } // namespace rd
