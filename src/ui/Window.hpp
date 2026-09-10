@@ -28,6 +28,8 @@ public:
     void Show();
     void Hide();
     void SetPosition(int x, int y);
+    void SetSize(int w, int h);
+    SDL_Point Position() const;
     void Clear(Uint8 r, Uint8 g, Uint8 b, Uint8 a = 255);
     void Present();
 

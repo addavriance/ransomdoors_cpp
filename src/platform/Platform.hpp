@@ -9,21 +9,18 @@
 
 namespace rd {
 
-// RealHardShutdown requires prior HardModeConsent.
+// RealHardShutdown gated by Config::crashOnDeath (session-only, see Config.hpp).
 namespace Platform {
 
 bool IsAdmin();
 
-// BSOD if elevated, else real shutdown. Consent-gated only.
+// BSOD if elevated, else real shutdown.
 void RealHardShutdown();
-
-// native MessageBox warning before HardModeConsent::Enable(); true = user picked Yes
-bool ConfirmHardmodeEnable();
 
 void RunOnDeathCommand(const std::string& cmd);
 
-// no-op on macOS
-void RegisterGoldIcon(const std::filesystem::path& icoSource);
+// extension e.g. ".gold1"; no-op on macOS
+void RegisterFileTypeIcon(const std::string& extension, const std::filesystem::path& icoSource);
 
 // WS_EX_LAYERED colorkey; no-op on macOS
 void MakeWindowColorKeyTransparent(SDL_Window* window, Uint8 r, Uint8 g, Uint8 b);
@@ -33,6 +30,9 @@ void StripWindowButtons(SDL_Window* window);
 
 // WS_EX_NOACTIVATE + TOOLWINDOW; no-op on macOS
 void MakeWindowNonActivating(SDL_Window* window);
+
+// WS_EX_TRANSPARENT - mouse/click events pass through to whatever's behind this window; no-op on macOS
+void MakeWindowClickThrough(SDL_Window* window);
 
 // pins to HWND_BOTTOM; no-op on macOS
 void PinWindowToBottom(SDL_Window* window);
@@ -58,6 +58,14 @@ void DisableWindowOpenAnimation(SDL_Window* window);
 // system-wide WH_KEYBOARD_LL hook; no-op on macOS
 void InstallKeyboardHook(std::function<void()> onKeyDown);
 void UninstallKeyboardHook();
+
+// SetSystemCursor(OCR_NORMAL); system takes ownership of the cursor handle; no-op on macOS
+void SetInfectedCursor(const std::filesystem::path& curSource);
+// resets to the user's configured scheme (not a true per-app undo)
+void RestoreCursor();
+
+// opens a folder in Explorer/Finder
+void OpenFolder(const std::filesystem::path& folder);
 
 } // namespace Platform
 } // namespace rd

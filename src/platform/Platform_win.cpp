@@ -2,9 +2,11 @@
 
 #include "Platform.hpp"
 
+#define OEMRESOURCE // for OCR_NORMAL
 #include <windows.h>
 #include <commctrl.h>
 #include <dwmapi.h>
+#include <shellapi.h>
 #include <shlobj.h>
 #include <tlhelp32.h>
 #include <SDL_syswm.h>
@@ -53,35 +55,32 @@ void RealHardShutdown() {
     }
 }
 
-bool ConfirmHardmodeEnable() {
-    int result = MessageBoxW(nullptr,
-        L"Hardmode makes the timeout a REAL shutdown (or BSOD if run as admin).\n\n"
-        L"This is not a simulation. Enable anyway?",
-        L"RANS0M - Hardmode", MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2 | MB_TOPMOST);
-    return result == IDYES;
-}
-
 void RunOnDeathCommand(const std::string& cmd) {
     if (!cmd.empty()) std::system(cmd.c_str());
 }
 
-void RegisterGoldIcon(const std::filesystem::path& icoSource) {
+void RegisterFileTypeIcon(const std::string& extension, const std::filesystem::path& icoSource) {
     const char* localAppData = std::getenv("LOCALAPPDATA");
     if (!localAppData) return;
+
+    std::string bare = extension.substr(1); // drop leading '.'
+    std::wstring wbare(bare.begin(), bare.end());
+    std::wstring className = wbare + L"File";
+    std::wstring wext(extension.begin(), extension.end());
 
     std::filesystem::path iconDir = std::filesystem::path(localAppData) / "ransomdoors" / "Icons";
     std::error_code ec;
     std::filesystem::create_directories(iconDir, ec);
 
-    std::filesystem::path iconDest = iconDir / "gold.ico";
+    std::filesystem::path iconDest = iconDir / (bare + ".ico");
     std::filesystem::copy_file(icoSource, iconDest, std::filesystem::copy_options::overwrite_existing, ec);
     if (ec) return;
 
     std::wstring iconPath = iconDest.wstring();
-    RegSetKeyValueW(HKEY_CURRENT_USER, L"Software\\Classes\\.gold", nullptr, REG_SZ, L"GoldFile",
-                     sizeof(L"GoldFile"));
-    RegSetKeyValueW(HKEY_CURRENT_USER, L"Software\\Classes\\GoldFile\\DefaultIcon", nullptr, REG_SZ,
-                     iconPath.c_str(), static_cast<DWORD>((iconPath.size() + 1) * sizeof(wchar_t)));
+    RegSetKeyValueW(HKEY_CURRENT_USER, (L"Software\\Classes\\" + wext).c_str(), nullptr, REG_SZ,
+                     className.c_str(), static_cast<DWORD>((className.size() + 1) * sizeof(wchar_t)));
+    RegSetKeyValueW(HKEY_CURRENT_USER, (L"Software\\Classes\\" + className + L"\\DefaultIcon").c_str(), nullptr,
+                     REG_SZ, iconPath.c_str(), static_cast<DWORD>((iconPath.size() + 1) * sizeof(wchar_t)));
 
     SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, nullptr, nullptr);
 }
@@ -179,6 +178,16 @@ void MakeWindowNonActivating(SDL_Window* window) {
     PinWindowToBottom(window);
 }
 
+void MakeWindowClickThrough(SDL_Window* window) {
+    SDL_SysWMinfo info;
+    SDL_VERSION(&info.version);
+    if (!SDL_GetWindowWMInfo(window, &info)) return;
+    HWND hwnd = info.info.win.window;
+
+    LONG_PTR exStyle = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
+    SetWindowLongPtrW(hwnd, GWL_EXSTYLE, exStyle | WS_EX_TRANSPARENT | WS_EX_LAYERED);
+}
+
 void PinWindowToBottom(SDL_Window* window) {
     SDL_SysWMinfo info;
     SDL_VERSION(&info.version);
@@ -228,6 +237,25 @@ void UninstallKeyboardHook() {
         g_keyboardHook = nullptr;
     }
     g_onKeyDown = nullptr;
+}
+
+void SetInfectedCursor(const std::filesystem::path& curSource) {
+    std::filesystem::path dest = std::filesystem::temp_directory_path() / "ransomdoors_infected.cur";
+    std::error_code ec;
+    std::filesystem::copy_file(curSource, dest, std::filesystem::copy_options::overwrite_existing, ec);
+    if (ec) return;
+
+    HCURSOR cursor = LoadCursorFromFileW(dest.wstring().c_str());
+    if (!cursor) return;
+    SetSystemCursor(cursor, OCR_NORMAL); // system takes ownership - don't destroy
+}
+
+void RestoreCursor() {
+    SystemParametersInfoW(SPI_SETCURSORS, 0, nullptr, 0);
+}
+
+void OpenFolder(const std::filesystem::path& folder) {
+    ShellExecuteW(nullptr, L"open", folder.wstring().c_str(), nullptr, nullptr, SW_SHOWNORMAL);
 }
 
 SDL_Surface* CaptureDesktopRegion(int x, int y, int w, int h) {

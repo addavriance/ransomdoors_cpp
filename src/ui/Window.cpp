@@ -52,6 +52,16 @@ void Window::SetPosition(int x, int y) {
     if (window_) SDL_SetWindowPosition(window_, x, y);
 }
 
+void Window::SetSize(int w, int h) {
+    if (window_) SDL_SetWindowSize(window_, w, h);
+}
+
+SDL_Point Window::Position() const {
+    SDL_Point p{0, 0};
+    if (window_) SDL_GetWindowPosition(window_, &p.x, &p.y);
+    return p;
+}
+
 void Window::Clear(Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
     SDL_SetRenderDrawColor(renderer_, r, g, b, a);
     SDL_RenderClear(renderer_);
