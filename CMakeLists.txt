@@ -14,7 +14,7 @@ if(NOT TARGET SDL2::SDL2 OR NOT TARGET SDL2_image::SDL2_image OR NOT TARGET SDL2
 
     set(SDL_TEST OFF CACHE BOOL "" FORCE)
     set(SDL_TESTS OFF CACHE BOOL "" FORCE)
-    set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
+    set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 
     # only ever load PNG/JPG + WAV - other codec submodules are unnecessary and flaky to fetch
     set(SDL2IMAGE_TESTS OFF CACHE BOOL "" FORCE)
@@ -78,6 +78,17 @@ target_link_libraries(imgui PUBLIC SDL2::SDL2)
 # WIN32 puts this on the GUI subsystem (no console box popping up); no-op on non-Windows targets
 if(WIN32)
     set(RANSOMDOORS_RC resources/app.rc)
+
+    file(GLOB_RECURSE RANSOMDOORS_ASSET_FILES CONFIGURE_DEPENDS RELATIVE ${CMAKE_SOURCE_DIR}/assets ${CMAKE_SOURCE_DIR}/assets/*)
+    set(RANSOMDOORS_ASSETS_RC ${CMAKE_BINARY_DIR}/generated_assets.rc)
+    set(RANSOMDOORS_ASSETS_RC_CONTENT "")
+    foreach(RANSOMDOORS_ASSET_FILE ${RANSOMDOORS_ASSET_FILES})
+        string(REPLACE "\\" "/" RANSOMDOORS_ASSET_KEY "${RANSOMDOORS_ASSET_FILE}")
+        string(APPEND RANSOMDOORS_ASSETS_RC_CONTENT
+            "\"${RANSOMDOORS_ASSET_KEY}\" ASSET \"${CMAKE_SOURCE_DIR}/assets/${RANSOMDOORS_ASSET_FILE}\"\n")
+    endforeach()
+    file(WRITE ${RANSOMDOORS_ASSETS_RC} "${RANSOMDOORS_ASSETS_RC_CONTENT}")
+    list(APPEND RANSOMDOORS_RC ${RANSOMDOORS_ASSETS_RC})
 endif()
 
 add_executable(ransomdoors WIN32
@@ -102,6 +113,7 @@ add_executable(ransomdoors WIN32
     src/platform/Platform_mac.mm
     src/platform/TrayIcon_win.cpp
     src/platform/TrayIcon_mac.mm
+    src/platform/EmbeddedAssets.cpp
 )
 
 target_include_directories(ransomdoors PRIVATE src)
@@ -121,11 +133,14 @@ if(WIN32)
     target_link_libraries(ransomdoors PRIVATE advapi32 shell32 dwmapi)
 endif()
 
+# SDL2::SDL2 keeps working when built static (SDL's own CMake aliases it to
+# SDL2-static), but SDL2_image/_mixer/_ttf don't - their static target only
+# gets the -static suffix.
 target_link_libraries(ransomdoors PRIVATE
     SDL2::SDL2 SDL2::SDL2main
-    SDL2_image::SDL2_image
-    SDL2_mixer::SDL2_mixer
-    SDL2_ttf::SDL2_ttf
+    SDL2_image::SDL2_image-static
+    SDL2_mixer::SDL2_mixer-static
+    SDL2_ttf::SDL2_ttf-static
     nlohmann_json::nlohmann_json
     imgui
 )
@@ -134,14 +149,3 @@ add_custom_command(TARGET ransomdoors POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:ransomdoors>/assets
 )
-
-if(WIN32)
-    add_custom_command(TARGET ransomdoors POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            $<TARGET_FILE:SDL2::SDL2>
-            $<TARGET_FILE:SDL2_image::SDL2_image>
-            $<TARGET_FILE:SDL2_mixer::SDL2_mixer>
-            $<TARGET_FILE:SDL2_ttf::SDL2_ttf>
-            $<TARGET_FILE_DIR:ransomdoors>
-    )
-endif()

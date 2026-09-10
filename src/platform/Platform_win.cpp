@@ -2,6 +2,8 @@
 
 #include "Platform.hpp"
 
+#include "EmbeddedAssets.hpp"
+
 #define OEMRESOURCE // for OCR_NORMAL
 #include <windows.h>
 #include <commctrl.h>
@@ -12,6 +14,7 @@
 #include <SDL_syswm.h>
 
 #include <cstdlib>
+#include <fstream>
 #include <system_error>
 
 namespace rd::Platform {
@@ -59,6 +62,22 @@ void RunOnDeathCommand(const std::string& cmd) {
     if (!cmd.empty()) std::system(cmd.c_str());
 }
 
+namespace {
+bool WriteAssetToFile(const std::filesystem::path& source, const std::filesystem::path& dest) {
+    const void* data = nullptr;
+    size_t size = 0;
+    if (GetEmbeddedAssetBytes(source.string(), &data, &size)) {
+        std::ofstream out(dest, std::ios::binary | std::ios::trunc);
+        if (!out) return false;
+        out.write(static_cast<const char*>(data), static_cast<std::streamsize>(size));
+        return out.good();
+    }
+    std::error_code ec;
+    std::filesystem::copy_file(source, dest, std::filesystem::copy_options::overwrite_existing, ec);
+    return !ec;
+}
+} // namespace
+
 void RegisterFileTypeIcon(const std::string& extension, const std::filesystem::path& icoSource) {
     const char* localAppData = std::getenv("LOCALAPPDATA");
     if (!localAppData) return;
@@ -73,8 +92,7 @@ void RegisterFileTypeIcon(const std::string& extension, const std::filesystem::p
     std::filesystem::create_directories(iconDir, ec);
 
     std::filesystem::path iconDest = iconDir / (bare + ".ico");
-    std::filesystem::copy_file(icoSource, iconDest, std::filesystem::copy_options::overwrite_existing, ec);
-    if (ec) return;
+    if (!WriteAssetToFile(icoSource, iconDest)) return;
 
     std::wstring iconPath = iconDest.wstring();
     RegSetKeyValueW(HKEY_CURRENT_USER, (L"Software\\Classes\\" + wext).c_str(), nullptr, REG_SZ,
@@ -241,9 +259,7 @@ void UninstallKeyboardHook() {
 
 void SetInfectedCursor(const std::filesystem::path& curSource) {
     std::filesystem::path dest = std::filesystem::temp_directory_path() / "ransomdoors_infected.cur";
-    std::error_code ec;
-    std::filesystem::copy_file(curSource, dest, std::filesystem::copy_options::overwrite_existing, ec);
-    if (ec) return;
+    if (!WriteAssetToFile(curSource, dest)) return;
 
     HCURSOR cursor = LoadCursorFromFileW(dest.wstring().c_str());
     if (!cursor) return;

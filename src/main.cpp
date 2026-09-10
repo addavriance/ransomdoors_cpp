@@ -19,6 +19,7 @@
 #include "coins/CoinManager.hpp"
 #include "core/App.hpp"
 #include "platform/Platform.hpp"
+#include "ui/ConfigWindow.hpp"
 #include "ui/CrucifixWindow.hpp"
 #include "ui/IconBlockOverlay.hpp"
 #include "ui/RansomWindow.hpp"
@@ -147,6 +148,14 @@ int RunDebugWindow(const std::string& name) {
             thankYou.Update(deltaMs);
             thankYou.Render();
         });
+
+    } else if (name == "config") {
+        if (!InitDebugSDL(/*needTTF=*/false)) return 1;
+        rd::Config cfg;
+        rd::ConfigWindowAssets assets{DebugAssetPath("fonts/Cousine-Bold.ttf").string(),
+                                       DebugAssetPath("images/Starlight.png").string()};
+        std::cout << "Opening ConfigWindow modal - close it to exit...\n";
+        rd::ConfigWindow::ShowModal(cfg, assets);
 
     } else if (name == "crucifix") {
         if (!InitDebugSDL(/*needTTF=*/false)) return 1;

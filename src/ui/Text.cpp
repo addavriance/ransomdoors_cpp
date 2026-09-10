@@ -1,5 +1,9 @@
 #include "Text.hpp"
 
+#include <cstdio>
+
+#include "../platform/EmbeddedAssets.hpp"
+
 namespace rd {
 
 TextRenderer::~TextRenderer() {
@@ -15,7 +19,13 @@ TTF_Font* TextRenderer::GetFont(int pointSize) {
     auto it = fonts_.find(pointSize);
     if (it != fonts_.end()) return it->second;
 
-    TTF_Font* font = TTF_OpenFont(fontPath_.c_str(), pointSize);
+    TTF_Font* font = nullptr;
+    if (SDL_RWops* rw = Platform::OpenEmbeddedAsset(fontPath_)) {
+        font = TTF_OpenFontRW(rw, 1, pointSize);
+    } else {
+        font = TTF_OpenFont(fontPath_.c_str(), pointSize);
+    }
+    if (!font) std::fprintf(stderr, "TextRenderer::GetFont: failed to load '%s': %s\n", fontPath_.c_str(), TTF_GetError());
     if (font) TTF_SetFontWrappedAlign(font, TTF_WRAPPED_ALIGN_CENTER); // per-line centering, not just block
     fonts_[pointSize] = font;
     return font;

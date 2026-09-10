@@ -1,5 +1,7 @@
 #include "AudioManager.hpp"
 
+#include "../platform/EmbeddedAssets.hpp"
+
 namespace rd {
 
 bool AudioManager::Init() {
@@ -17,15 +19,23 @@ void AudioManager::Shutdown() {
 }
 
 void AudioManager::LoadMusic(std::string_view key, const std::string& path) {
-    if (Mix_Music* track = Mix_LoadMUS(path.c_str())) {
-        music_[std::string(key)] = track;
+    Mix_Music* track = nullptr;
+    if (SDL_RWops* rw = Platform::OpenEmbeddedAsset(path)) {
+        track = Mix_LoadMUS_RW(rw, 1);
+    } else {
+        track = Mix_LoadMUS(path.c_str());
     }
+    if (track) music_[std::string(key)] = track;
 }
 
 void AudioManager::LoadSfx(std::string_view key, const std::string& path) {
-    if (Mix_Chunk* chunk = Mix_LoadWAV(path.c_str())) {
-        sfx_[std::string(key)] = chunk;
+    Mix_Chunk* chunk = nullptr;
+    if (SDL_RWops* rw = Platform::OpenEmbeddedAsset(path)) {
+        chunk = Mix_LoadWAV_RW(rw, 1);
+    } else {
+        chunk = Mix_LoadWAV(path.c_str());
     }
+    if (chunk) sfx_[std::string(key)] = chunk;
 }
 
 void AudioManager::PlayMusicLoop(std::string_view key) {

@@ -10,6 +10,7 @@
 #include <cstring>
 
 #include "Window.hpp"
+#include "../platform/EmbeddedAssets.hpp"
 
 namespace rd {
 
@@ -188,7 +189,7 @@ FrameResult DrawConfigUI(Config& draft, char* cmdBuf, ImTextureID starlightTex) 
     }
 
     ImGui::Spacing();
-    const char* footer = "RANS0M - fan port, original by Ixars";
+    const char* footer = "RANS0M C++ v2.0.5 by addavriance";
     float footerW = ImGui::CalcTextSize(footer).x;
     ImGui::SetCursorPosX((winSize.x - footerW) * 0.5f);
     ImGui::TextDisabled("%s", footer);
@@ -259,7 +260,15 @@ struct ConfigWindow::Impl {
         ImGuiIO& io = ImGui::GetIO();
         io.IniFilename = nullptr; // no imgui.ini next to the exe
         if (!assets.fontPath.empty()) {
-            io.Fonts->AddFontFromFileTTF(assets.fontPath.c_str(), 15.0f);
+            const void* fontData = nullptr;
+            size_t fontSize = 0;
+            if (Platform::GetEmbeddedAssetBytes(assets.fontPath, &fontData, &fontSize)) {
+                ImFontConfig cfg;
+                cfg.FontDataOwnedByAtlas = false; // embedded data is owned by the exe's own image, not heap memory
+                io.Fonts->AddFontFromMemoryTTF(const_cast<void*>(fontData), static_cast<int>(fontSize), 15.0f, &cfg);
+            } else {
+                io.Fonts->AddFontFromFileTTF(assets.fontPath.c_str(), 15.0f);
+            }
         }
         ApplyRansomStyle();
 

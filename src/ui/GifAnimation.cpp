@@ -4,6 +4,8 @@
 
 #include <cstdio>
 
+#include "../platform/EmbeddedAssets.hpp"
+
 namespace rd {
 
 namespace {
@@ -13,7 +15,12 @@ constexpr std::uint32_t kDefaultFrameDelayMs = 100;
 }
 
 GifAnimation::GifAnimation(SDL_Renderer* renderer, const std::string& path) {
-    IMG_Animation* anim = IMG_LoadAnimation(path.c_str());
+    IMG_Animation* anim = nullptr;
+    if (SDL_RWops* rw = Platform::OpenEmbeddedAsset(path)) {
+        anim = IMG_LoadAnimation_RW(rw, 1);
+    } else {
+        anim = IMG_LoadAnimation(path.c_str());
+    }
     if (!anim) {
         std::fprintf(stderr, "GifAnimation: failed to load '%s': %s\n", path.c_str(), IMG_GetError());
         return;

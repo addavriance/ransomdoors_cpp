@@ -1,5 +1,8 @@
 #include "Window.hpp"
 
+#include <cstdio>
+
+#include "../platform/EmbeddedAssets.hpp"
 #include "../platform/Platform.hpp"
 
 namespace rd {
@@ -72,7 +75,14 @@ void Window::Present() {
 }
 
 SDL_Texture* Window::LoadTexture(const std::string& path) {
-    return IMG_LoadTexture(renderer_, path.c_str());
+    SDL_Texture* tex = nullptr;
+    if (SDL_RWops* rw = Platform::OpenEmbeddedAsset(path)) {
+        tex = IMG_LoadTexture_RW(renderer_, rw, 1);
+    } else {
+        tex = IMG_LoadTexture(renderer_, path.c_str());
+    }
+    if (!tex) std::fprintf(stderr, "Window::LoadTexture: failed to load '%s': %s\n", path.c_str(), IMG_GetError());
+    return tex;
 }
 
 } // namespace rd
