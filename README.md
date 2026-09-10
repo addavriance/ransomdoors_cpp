@@ -7,8 +7,10 @@ files get scattered around your folders, and you have to drag enough of them
 onto the ransom window before the timer runs out. Fail to pay in time and,
 if you enabled it, it crashes your computer for real.
 
-<!-- screenshot -->
-<!-- screenshot -->
+</br>
+<img width="700" height="auto" alt="image_2026-09-10_22-45-53" src="https://github.com/user-attachments/assets/15a9c3d1-4209-443f-9be2-49a343e1e845" />
+<img width="250" height="auto" alt="image_2026-09-10_22-48-44" src="https://github.com/user-attachments/assets/7feec338-d3a3-4238-9ba7-1c496feeed20" />
+</br></br>
 
 This is a C++/SDL2 rewrite of the original WinForms app, same logic
 underneath, with a more structured codebase than the original source. The
