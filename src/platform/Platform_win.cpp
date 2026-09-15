@@ -19,6 +19,12 @@
 
 namespace rd::Platform {
 
+void RequestPermissions() {}
+void KeepWindowTransparent(SDL_Window*) {}
+void ForgetWindow(SDL_Window*) {}
+void MakeWindowJoinAllSpaces(SDL_Window*) {}
+void KeepWindowInAllSpaces(SDL_Window*) {}
+
 bool IsAdmin() {
     BOOL isAdmin = FALSE;
     PSID adminGroup = nullptr;
