@@ -1,5 +1,7 @@
 build/
+build-mac/
 build-release/
+cmake-build-debug/
 portable/
 .idea/
 

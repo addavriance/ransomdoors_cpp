@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>RANS0M</string>
+    <key>CFBundleDisplayName</key>
+    <string>RANS0M</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.ransomdoors.app</string>
+    <key>CFBundleVersion</key>
+    <string>1.0</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleExecutable</key>
+    <string>ransomdoors</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon.icns</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>10.14</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>RANS0M asks Finder for your desktop icon positions, so it can block them with its own decoy icons during an "infection".</string>
+    <key>LSUIElement</key>
+    <true/>
+    <key>NSHumanReadableCopyright</key>
+    <string>Unofficial fan project, not affiliated with LSPLASH.</string>
+
+    <key>UTExportedTypeDeclarations</key>
+    <array>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>com.ransomdoors.gold1</string>
+            <key>UTTypeDescription</key>
+            <string>RANS0M Gold Coin</string>
+            <key>UTTypeConformsTo</key>
+            <array><string>public.data</string></array>
+            <key>UTTypeIconFile</key>
+            <string>Gold1.icns</string>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array><string>gold1</string></array>
+            </dict>
+        </dict>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>com.ransomdoors.gold2</string>
+            <key>UTTypeDescription</key>
+            <string>RANS0M Gold Coin</string>
+            <key>UTTypeConformsTo</key>
+            <array><string>public.data</string></array>
+            <key>UTTypeIconFile</key>
+            <string>Gold2.icns</string>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array><string>gold2</string></array>
+            </dict>
+        </dict>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>com.ransomdoors.gold3</string>
+            <key>UTTypeDescription</key>
+            <string>RANS0M Gold Coin</string>
+            <key>UTTypeConformsTo</key>
+            <array><string>public.data</string></array>
+            <key>UTTypeIconFile</key>
+            <string>Gold3.icns</string>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array><string>gold3</string></array>
+            </dict>
+        </dict>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>com.ransomdoors.gold4</string>
+            <key>UTTypeDescription</key>
+            <string>RANS0M Gold Coin</string>
+            <key>UTTypeConformsTo</key>
+            <array><string>public.data</string></array>
+            <key>UTTypeIconFile</key>
+            <string>Gold4.icns</string>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array><string>gold4</string></array>
+            </dict>
+        </dict>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>com.ransomdoors.gold5</string>
+            <key>UTTypeDescription</key>
+            <string>RANS0M Gold Coin</string>
+            <key>UTTypeConformsTo</key>
+            <array><string>public.data</string></array>
+            <key>UTTypeIconFile</key>
+            <string>Gold5.icns</string>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array><string>gold5</string></array>
+            </dict>
+        </dict>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>com.ransomdoors.gold6</string>
+            <key>UTTypeDescription</key>
+            <string>RANS0M Honey Pot</string>
+            <key>UTTypeConformsTo</key>
+            <array><string>public.data</string></array>
+            <key>UTTypeIconFile</key>
+            <string>HoneyPot.icns</string>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array><string>gold6</string></array>
+            </dict>
+        </dict>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>com.ransomdoors.crucifix</string>
+            <key>UTTypeDescription</key>
+            <string>RANS0M Crucifix</string>
+            <key>UTTypeConformsTo</key>
+            <array><string>public.data</string></array>
+            <key>UTTypeIconFile</key>
+            <string>Crucifix.icns</string>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array><string>crucifix</string></array>
+            </dict>
+        </dict>
+    </array>
+
+    <key>CFBundleDocumentTypes</key>
+    <array>
+        <dict>
+            <key>LSItemContentTypes</key>
+            <array><string>com.ransomdoors.gold1</string></array>
+            <key>CFBundleTypeIconFile</key>
+            <string>Gold1.icns</string>
+            <key>CFBundleTypeName</key>
+            <string>RANS0M Gold Coin</string>
+            <key>LSHandlerRank</key>
+            <string>Owner</string>
+        </dict>
+        <dict>
+            <key>LSItemContentTypes</key>
+            <array><string>com.ransomdoors.gold2</string></array>
+            <key>CFBundleTypeIconFile</key>
+            <string>Gold2.icns</string>
+            <key>CFBundleTypeName</key>
+            <string>RANS0M Gold Coin</string>
+            <key>LSHandlerRank</key>
+            <string>Owner</string>
+        </dict>
+        <dict>
+            <key>LSItemContentTypes</key>
+            <array><string>com.ransomdoors.gold3</string></array>
+            <key>CFBundleTypeIconFile</key>
+            <string>Gold3.icns</string>
+            <key>CFBundleTypeName</key>
+            <string>RANS0M Gold Coin</string>
+            <key>LSHandlerRank</key>
+            <string>Owner</string>
+        </dict>
+        <dict>
+            <key>LSItemContentTypes</key>
+            <array><string>com.ransomdoors.gold4</string></array>
+            <key>CFBundleTypeIconFile</key>
+            <string>Gold4.icns</string>
+            <key>CFBundleTypeName</key>
+            <string>RANS0M Gold Coin</string>
+            <key>LSHandlerRank</key>
+            <string>Owner</string>
+        </dict>
+        <dict>
+            <key>LSItemContentTypes</key>
+            <array><string>com.ransomdoors.gold5</string></array>
+            <key>CFBundleTypeIconFile</key>
+            <string>Gold5.icns</string>
+            <key>CFBundleTypeName</key>
+            <string>RANS0M Gold Coin</string>
+            <key>LSHandlerRank</key>
+            <string>Owner</string>
+        </dict>
+        <dict>
+            <key>LSItemContentTypes</key>
+            <array><string>com.ransomdoors.gold6</string></array>
+            <key>CFBundleTypeIconFile</key>
+            <string>HoneyPot.icns</string>
+            <key>CFBundleTypeName</key>
+            <string>RANS0M Honey Pot</string>
+            <key>LSHandlerRank</key>
+            <string>Owner</string>
+        </dict>
+        <dict>
+            <key>LSItemContentTypes</key>
+            <array><string>com.ransomdoors.crucifix</string></array>
+            <key>CFBundleTypeIconFile</key>
+            <string>Crucifix.icns</string>
+            <key>CFBundleTypeName</key>
+            <string>RANS0M Crucifix</string>
+            <key>LSHandlerRank</key>
+            <string>Owner</string>
+        </dict>
+    </array>
+</dict>
+</plist>

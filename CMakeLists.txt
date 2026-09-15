@@ -91,8 +91,46 @@ if(WIN32)
     list(APPEND RANSOMDOORS_RC ${RANSOMDOORS_ASSETS_RC})
 endif()
 
-add_executable(ransomdoors WIN32
+# Bundle as a proper .app on macOS: SDL requires NSHighResolutionCapable in Info.plist for Retina
+# rendering, and per-extension Finder icons for the scattered .gold*/.crucifix files require UTI
+# declarations in Info.plist too - neither works from a bare Unix executable.
+if(APPLE)
+    set(RANSOMDOORS_ICON_DIR ${CMAKE_BINARY_DIR}/icons)
+    file(MAKE_DIRECTORY ${RANSOMDOORS_ICON_DIR})
+
+    # (source .ico, output .icns basename) - basenames must match resources/Info.plist's UTTypeIconFile/
+    # CFBundleIconFile entries
+    set(RANSOMDOORS_ICNS_SOURCES
+        resources/app.ico:AppIcon
+        assets/images/Gold1.ico:Gold1
+        assets/images/Gold2.ico:Gold2
+        assets/images/Gold3.ico:Gold3
+        assets/images/Gold4.ico:Gold4
+        assets/images/Gold5.ico:Gold5
+        assets/images/HoneyPot.ico:HoneyPot
+        assets/images/crucifix.ico:Crucifix
+    )
+    set(RANSOMDOORS_ICNS_FILES "")
+    foreach(RANSOMDOORS_ICNS_ENTRY ${RANSOMDOORS_ICNS_SOURCES})
+        string(REPLACE ":" ";" RANSOMDOORS_ICNS_PARTS ${RANSOMDOORS_ICNS_ENTRY})
+        list(GET RANSOMDOORS_ICNS_PARTS 0 RANSOMDOORS_ICNS_SRC)
+        list(GET RANSOMDOORS_ICNS_PARTS 1 RANSOMDOORS_ICNS_NAME)
+        set(RANSOMDOORS_ICNS_OUT ${RANSOMDOORS_ICON_DIR}/${RANSOMDOORS_ICNS_NAME}.icns)
+        add_custom_command(
+            OUTPUT ${RANSOMDOORS_ICNS_OUT}
+            COMMAND ${CMAKE_SOURCE_DIR}/resources/make_icns.sh
+                    ${CMAKE_SOURCE_DIR}/${RANSOMDOORS_ICNS_SRC} ${RANSOMDOORS_ICNS_OUT}
+            DEPENDS ${CMAKE_SOURCE_DIR}/${RANSOMDOORS_ICNS_SRC} resources/make_icns.sh
+            COMMENT "Generating ${RANSOMDOORS_ICNS_NAME}.icns"
+        )
+        list(APPEND RANSOMDOORS_ICNS_FILES ${RANSOMDOORS_ICNS_OUT})
+    endforeach()
+    set_source_files_properties(${RANSOMDOORS_ICNS_FILES} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
+endif()
+
+add_executable(ransomdoors WIN32 MACOSX_BUNDLE
     ${RANSOMDOORS_RC}
+    ${RANSOMDOORS_ICNS_FILES}
     src/main.cpp
     src/core/App.cpp
     src/core/Sequencer.cpp
@@ -121,9 +159,12 @@ target_include_directories(ransomdoors PRIVATE src)
 if(APPLE)
     set_source_files_properties(src/platform/Platform_mac.mm src/platform/TrayIcon_mac.mm
         PROPERTIES COMPILE_FLAGS "-x objective-c++")
-    target_link_libraries(ransomdoors PRIVATE "-framework Foundation")
+    target_link_libraries(ransomdoors PRIVATE "-framework Foundation" "-framework ApplicationServices")
     set_source_files_properties(src/platform/Platform_win.cpp src/platform/TrayIcon_win.cpp
         PROPERTIES HEADER_FILE_ONLY TRUE)
+    set_target_properties(ransomdoors PROPERTIES
+        MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/resources/Info.plist
+    )
 else()
     set_source_files_properties(src/platform/Platform_mac.mm src/platform/TrayIcon_mac.mm
         PROPERTIES HEADER_FILE_ONLY TRUE)
@@ -145,7 +186,35 @@ target_link_libraries(ransomdoors PRIVATE
     imgui
 )
 
-add_custom_command(TARGET ransomdoors POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:ransomdoors>/assets
-)
+# SDL_GetBasePath() resolves to Contents/Resources inside a .app bundle, not the executable's own
+# directory (Contents/MacOS) - assets have to land there on macOS for AssetPath() to find them.
+if(APPLE)
+    add_custom_command(TARGET ransomdoors POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/assets $<TARGET_BUNDLE_CONTENT_DIR:ransomdoors>/Resources/assets
+    )
+else()
+    add_custom_command(TARGET ransomdoors POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:ransomdoors>/assets
+    )
+endif()
+
+# Keeps macOS TCC permission grants stable across rebuilds (ad-hoc signing hashes the binary, so
+# every rebuild looks like a new app otherwise). Optional - skipped if this local dev identity isn't
+# in the keychain (e.g. a fresh clone), falling back to the default ad-hoc signature.
+if(APPLE)
+    set(RANSOMDOORS_DEV_SIGN_IDENTITY "Ransomdoors Local Dev")
+    execute_process(
+        COMMAND security find-identity -v -p codesigning
+        OUTPUT_VARIABLE RANSOMDOORS_SIGNING_IDENTITIES
+        ERROR_QUIET
+    )
+    if(RANSOMDOORS_SIGNING_IDENTITIES MATCHES "${RANSOMDOORS_DEV_SIGN_IDENTITY}")
+        add_custom_command(TARGET ransomdoors POST_BUILD
+            COMMAND codesign --force --sign "${RANSOMDOORS_DEV_SIGN_IDENTITY}" --deep
+                    $<TARGET_BUNDLE_DIR:ransomdoors>
+            COMMENT "Signing with stable local dev identity (keeps TCC grants across rebuilds)"
+        )
+    endif()
+endif()
