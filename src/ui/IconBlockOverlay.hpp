@@ -17,9 +17,14 @@ public:
     void Render();
 
 private:
+    void RefreshIconRects();
+
     Window window_;
     SDL_Texture* texture_ = nullptr;
     std::vector<SDL_Rect> localIconRects_; // already offset into this window's own coord space
+    int screenX_ = 0;
+    int screenY_ = 0;
+    Uint32 lastRefreshMs_ = 0;
 };
 
 } // namespace rd

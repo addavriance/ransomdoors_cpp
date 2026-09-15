@@ -11,6 +11,7 @@
 
 #include "Window.hpp"
 #include "../platform/EmbeddedAssets.hpp"
+#include "../platform/Platform.hpp"
 
 namespace rd {
 
@@ -245,7 +246,8 @@ struct ConfigWindow::Impl {
     ~Impl() { Teardown(); }
 
     void Setup(const Config& initial, const ConfigWindowAssets& assets) {
-        window = std::make_unique<Window>("RANS0M Config", kWindowW, kWindowH, 0,
+        // ALWAYS_ON_TOP so it doesn't render behind other game windows on macOS (they're all on top too)
+        window = std::make_unique<Window>("RANS0M Config", kWindowW, kWindowH, SDL_WINDOW_ALWAYS_ON_TOP,
                                            /*startVisible=*/true, /*titleBar=*/true);
         if (!window->Valid()) {
             window.reset();
@@ -355,6 +357,7 @@ void ConfigWindow::Render() {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
     ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), renderer);
+    Platform::KeepWindowInAllSpaces(impl_->window->Raw()); // see Window::Present - this bypasses it
     SDL_RenderPresent(renderer);
 
     if (result.closeRequested) {
@@ -398,6 +401,7 @@ bool ConfigWindow::ShowModal(Config& cfg, const ConfigWindowAssets& assets, bool
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
         ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), renderer);
+        Platform::KeepWindowInAllSpaces(modal.impl_->window->Raw());
         SDL_RenderPresent(renderer);
 
         if (result.closeRequested) {

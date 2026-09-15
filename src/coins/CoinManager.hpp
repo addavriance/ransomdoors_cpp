@@ -11,6 +11,12 @@ constexpr int kValues[7] = {0, 10, 50, 100, 150, 200, 500}; // index = extension
 int GetWeightedExtension();
 } // namespace CoinValues
 
+// folders PickScatterDir() picks from (relative to $HOME/%USERPROFILE%); shared with
+// Platform::RequestPermissions()
+constexpr const char* kScatterFolderNames[] = {
+    "Desktop", "Documents", "Downloads", "Pictures", "Music", "Videos",
+};
+
 struct RedeemResult {
     bool ok = false;
     int value = 0;

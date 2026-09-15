@@ -25,6 +25,7 @@
 #include "ui/RansomWindow.hpp"
 #include "ui/TauntWindow.hpp"
 #include "ui/ThankYouWindow.hpp"
+#include "ui/VignetteWindow.hpp"
 
 namespace {
 
@@ -64,6 +65,7 @@ bool InitDebugSDL(bool needTTF) {
         std::cout << "SDL_Init failed: " << SDL_GetError() << "\n";
         return false;
     }
+    rd::Platform::RequestPermissions(); // see App::Init() - must come after SDL_Init on macOS
     if (!(IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG)) {
         std::cout << "IMG_Init failed: " << IMG_GetError() << "\n";
         return false;
@@ -157,6 +159,19 @@ int RunDebugWindow(const std::string& name) {
         std::cout << "Opening ConfigWindow modal - close it to exit...\n";
         rd::ConfigWindow::ShowModal(cfg, assets);
 
+    } else if (name == "vignette") {
+        if (!InitDebugSDL(/*needTTF=*/false)) return 1;
+        SDL_GetDisplayBounds(0, &bounds);
+        std::cout << "Spawning VignetteWindow standalone for 60s - it should be click-through: try "
+                     "clicking/dragging on the desktop or another window underneath it.\n";
+        rd::VignetteWindow vignette(bounds.x, bounds.y, bounds.w, bounds.h,
+                                     DebugAssetPath("images/red_vignette.gif").string());
+        vignette.Show();
+        RunStandaloneLoop(60000, [&](std::uint32_t, std::uint32_t deltaMs) {
+            vignette.Update(deltaMs);
+            vignette.Render();
+        });
+
     } else if (name == "crucifix") {
         if (!InitDebugSDL(/*needTTF=*/false)) return 1;
         SDL_GetDisplayBounds(0, &bounds);
@@ -171,7 +186,7 @@ int RunDebugWindow(const std::string& name) {
 
     } else {
         std::cout << "Unknown --debug-window '" << name
-                  << "'. Known: iconblock, taunt, ransom, thankyou, crucifix.\n"
+                  << "'. Known: iconblock, taunt, ransom, thankyou, vignette, crucifix.\n"
                   << "(The warning-icon beat isn't its own reusable class yet - it's inline in "
                   << "App::RenderWarning - so it's not covered here.)\n";
         return 1;
@@ -191,7 +206,7 @@ int main(int argc, char** argv) {
         if (std::strcmp(argv[i], "--debug-window") == 0) {
             if (i + 1 >= argc) {
                 AttachCliConsole();
-                std::cout << "Usage: --debug-window <iconblock|taunt|ransom|thankyou>\n";
+                std::cout << "Usage: --debug-window <iconblock|taunt|ransom|thankyou|vignette|crucifix>\n";
                 return 1;
             }
             return RunDebugWindow(argv[i + 1]);

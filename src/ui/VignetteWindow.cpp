@@ -23,7 +23,7 @@ void VignetteWindow::Update(std::uint32_t deltaMs) {
 
 void VignetteWindow::Render() {
     SDL_Renderer* renderer = window_.Renderer();
-    window_.Clear(0, 0, 0);
+    window_.Clear(0, 0, 0, 0); // see MakeWindowColorKeyTransparent
 
     if (gif_ && gif_->CurrentFrame()) {
         int w = 0, h = 0;

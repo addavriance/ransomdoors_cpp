@@ -17,6 +17,7 @@ Window::Window(const std::string& title, int w, int h, Uint32 extraFlags, bool s
     Uint32 rendererFlags = softwareRenderer ? SDL_RENDERER_SOFTWARE : (SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     renderer_ = SDL_CreateRenderer(window_, -1, rendererFlags);
     if (titleBar) Platform::StripWindowButtons(window_);
+    if (extraFlags & SDL_WINDOW_ALWAYS_ON_TOP) Platform::MakeWindowJoinAllSpaces(window_);
 }
 
 Window::~Window() { Destroy(); }
@@ -39,7 +40,10 @@ Window& Window::operator=(Window&& other) noexcept {
 
 void Window::Destroy() {
     if (renderer_) SDL_DestroyRenderer(renderer_);
-    if (window_) SDL_DestroyWindow(window_);
+    if (window_) {
+        Platform::ForgetWindow(window_);
+        SDL_DestroyWindow(window_);
+    }
     renderer_ = nullptr;
     window_ = nullptr;
 }
@@ -71,6 +75,8 @@ void Window::Clear(Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
 }
 
 void Window::Present() {
+    Platform::KeepWindowTransparent(window_); // no-op on Windows
+    Platform::KeepWindowInAllSpaces(window_); // no-op on Windows
     SDL_RenderPresent(renderer_);
 }
 

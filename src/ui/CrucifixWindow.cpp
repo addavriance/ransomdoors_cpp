@@ -37,7 +37,7 @@ void CrucifixWindow::Update(std::uint32_t deltaMs) {
 
 void CrucifixWindow::Render() {
     SDL_Renderer* renderer = window_.Renderer();
-    window_.Clear(0, 0, 0);
+    window_.Clear(0, 0, 0, 0); // see MakeWindowColorKeyTransparent
 
     if (repent_ && repent_->CurrentFrame()) {
         SDL_Rect dst{0, 0, kWidth, kHeight};

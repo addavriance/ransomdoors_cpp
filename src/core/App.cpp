@@ -53,6 +53,9 @@ bool App::Init() {
     Platform::RestoreCursor();
 
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0) return false;
+
+    // must come after SDL_Init - macOS TCC prompts need a running NSApplication to display
+    Platform::RequestPermissions();
     if (!(IMG_Init(IMG_INIT_PNG | IMG_INIT_JPG) & (IMG_INIT_PNG | IMG_INIT_JPG))) return false;
     if (TTF_Init() != 0) return false;
     if (!audio_.Init()) return false;
@@ -460,7 +463,7 @@ void App::UpdateRansomFlash(std::uint32_t deltaMs) {
 void App::RenderRansomFlash() {
     if (!ransomFlashWindow_ || !ransomFlashWindow_->Valid() || flashBurstRemaining_ <= 0) return;
 
-    ransomFlashWindow_->Clear(0, 0, 192); // see MakeWindowColorKeyTransparent
+    ransomFlashWindow_->Clear(0, 0, 0, 0); // see MakeWindowColorKeyTransparent
     if (texRansomRandom_) {
         SDL_Rect dst{0, 0, flashFaceSize_, flashFaceSize_};
         SDL_RenderCopy(ransomFlashWindow_->Renderer(), texRansomRandom_, nullptr, &dst);
@@ -484,7 +487,7 @@ void App::RenderWarning(std::uint32_t t) {
 
             Platform::ShowAndForceTopmost(warningIcon_->Raw(), x, y, 200, 200);
 
-            warningIcon_->Clear(0, 0, 192); // see MakeWindowColorKeyTransparent
+            warningIcon_->Clear(0, 0, 0, 0); // see MakeWindowColorKeyTransparent
             SDL_Texture* tex = (t < 500) ? warningFaceTex_ : warningStopTex_;
             if (tex) {
                 SDL_Rect dst{0, 0, w, h};

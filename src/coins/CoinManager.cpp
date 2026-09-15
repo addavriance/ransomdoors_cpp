@@ -119,14 +119,11 @@ std::string CoinManager::Tag(std::string_view token) const {
 }
 
 std::filesystem::path CoinManager::PickScatterDir(int maxSubfolderDepth) const {
-    static const std::vector<const char*> candidates = {
-        "Desktop", "Documents", "Downloads", "Pictures", "Music", "Videos",
-    };
     std::filesystem::path home = HomeDir();
 
     static std::mt19937 rng{std::random_device{}()};
     std::vector<std::filesystem::path> bases;
-    for (const char* c : candidates) {
+    for (const char* c : kScatterFolderNames) {
         std::filesystem::path dir = home / c;
         if (std::filesystem::exists(dir)) bases.push_back(dir);
     }
