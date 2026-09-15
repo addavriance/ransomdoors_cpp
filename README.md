@@ -37,7 +37,9 @@ files, and it's fully open source. See [LICENSE.md](LICENSE.md).
 ## Requirements
 
 - Windows is the primary target (Win32 hooks, `shutdown.exe`, the registry)
-- macOS backend exists in source but is unverified on real hardware
+- macOS is supported and working (see notes below) — Windows-only touches
+  (real system cursor swap, showing up over another app's real Fullscreen
+  Space) don't have equivalents there and are left as no-ops
 - CMake 3.20+ and a C++17 compiler
 - Everything else (SDL2 + friends, Dear ImGui, nlohmann/json) is fetched and
   built automatically via CMake's `FetchContent` — no manual setup
@@ -50,12 +52,22 @@ cmake --build build --config Release
 ```
 
 First configure takes a few minutes while dependencies are fetched and
-built; rebuilds after that are fast. Produces a single self-contained
-`ransomdoors.exe` — everything (SDL2 and friends, all assets) is statically
-linked and embedded into the binary, no DLLs or `assets/` folder needed
-next to it.
+built; rebuilds after that are fast.
 
-Runs from a system tray icon — right-click for Close and Config.
+On Windows this produces a single self-contained `ransomdoors.exe` —
+everything (SDL2 and friends, all assets) is statically linked and embedded
+into the binary, no DLLs or `assets/` folder needed next to it.
+
+On macOS it produces `ransomdoors.app`, a proper bundle with its own icon
+and per-coin Finder icons. First launch needs right-click → Open (or
+System Settings → Privacy & Security → "Open Anyway") since it isn't
+notarized — standard for any indie/hobby Mac app without a paid Apple
+Developer ID. It'll also ask for Accessibility, Automation (to talk to
+Finder), and folder access the first time each is needed — normal macOS
+permission prompts, not something to worry about.
+
+Runs from a system tray/menu bar icon on both platforms — click it for
+Close and Config.
 
 ## Configuration
 
